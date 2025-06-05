@@ -1,0 +1,21 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaNodePool
+metadata:
+  annotations:
+    {{- with .Values.controller.additionalAnnotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  labels:
+    strimzi.io/cluster: {{ .Values.cluster.name }}
+    {{- with .Values.controller.additionalLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  name: {{ .Values.controller.name }}
+spec:
+  replicas: {{ .Values.controller.replicas }}
+  roles:
+    - controller
+  {{- with .Values.controller.storage }}
+  storage:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}

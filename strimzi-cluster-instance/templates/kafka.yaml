@@ -1,0 +1,45 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  annotations:
+    strimzi.io/kraft: enabled
+    strimzi.io/node-pools: enabled
+    {{- with .Values.kafka.additionalAnnotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  labels:
+    {{- with .Values.kafka.additionalLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  name: {{ .Values.cluster.name }}
+spec:
+  kafka:
+    {{- if .Values.kafka.brokerRackInitImage }}
+    brokerRackInitImage: {{ .Values.kafka.brokerRackInitImage }}
+    {{- end }}
+    {{- with .Values.kafka.config }}
+    config:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    listeners:
+      - name: plain
+        port: {{ .Values.kafka.listeners.plain.port }}
+        tls: false
+        type: internal
+      - name: tls
+        port: {{ .Values.kafka.listeners.tls.port }}
+        tls: true
+        type: internal
+    {{- if .Values.kafka.metadataVersion }}
+    metadataVersion: {{ .Values.kafka.metadataVersion }}
+    {{- end }}
+    {{- if .Values.kafka.rack }}
+    rack:
+      {{- toYaml .Values.kafka.rack | nindent 6 }}
+    {{- end }}
+    {{- if .Values.kafka.version }}
+    version: {{ .Values.kafka.version }}
+    {{- end }}
+  entityOperator:
+    topicOperator: {{- toYaml .Values.kafka.topicOperator | nindent 6 }}
+    userOperator: {{- toYaml .Values.kafka.userOperator | nindent 6 }}

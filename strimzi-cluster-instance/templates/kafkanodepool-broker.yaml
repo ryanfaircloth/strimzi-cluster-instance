@@ -1,0 +1,21 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaNodePool
+metadata:
+  annotations:
+    {{- with .Values.broker.additionalAnnotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  labels:
+    strimzi.io/cluster: {{ .Values.cluster.name }}
+    {{- with .Values.broker.additionalLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  name: {{ .Values.broker.name }}
+spec:
+  replicas: {{ .Values.broker.replicas }}
+  roles:
+    - broker
+  {{- with .Values.broker.storage }}
+  storage:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}

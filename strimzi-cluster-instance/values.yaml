@@ -1,0 +1,83 @@
+# Default values for strimzi-cluster-instance.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# This is to override the chart name.
+fullnameOverride: ""
+nameOverride: ""
+
+# Broker node pool
+broker:
+  additionalAnnotations: {}
+  additionalLabels: {}
+  name: broker
+  replicas: 3
+  storage:
+    type: jbod
+    volumes:
+      - id: 0
+        type: ephemeral
+
+# Cluster-wide settings
+cluster:
+  name: my-cluster
+
+# Controller node pool
+controller:
+  additionalAnnotations: {}
+  additionalLabels: {}
+  name: controller
+  replicas: 3
+  storage:
+    type: jbod
+    volumes:
+      - id: 0
+        type: ephemeral
+        # kraftMetadata: shared  # Uncomment if needed for controller
+
+# Kafka CR settings
+kafka:
+  additionalAnnotations: {}
+  additionalLabels: {}
+  brokerRackInitImage: null
+  config:
+    auto.create.topics.enable: true
+    defaultReplicationFactor: 3
+    minInsyncReplicas: 2
+    offsetsTopicReplicationFactor: 3
+    replica.selector.class: org.apache.kafka.common.replica.RackAwareReplicaSelector
+    transactionStateLogMinIsr: 2
+    transactionStateLogReplicationFactor: 3
+
+    # background threads include replication for very high throughput increase based on available CPU cores and usage default is 10
+    # background.threads: 20
+    # For storage where storage is thin provisioned enable
+    # log.preallocate: true
+    # num.io.threads increase based on available CPU cores and usage default is 8
+    # num.io.threads: 20
+    # num.network.threads increase based on available CPU cores and usage default is 3
+    # num.network.threads: 6
+    # num.recovery.threads.per.data.dir: 2  # default is 1 set to number of cores in brokers
+    # num.recovery.threads.per.data.dir: 1
+    # num.replica.fetchers increase based on available CPU cores and usage default is 1
+    # num.replica.fetchers: 10
+    # replica.socket.receive.buffer.bytes: 65536 increased for higher replication throughput based on memory
+    # replica.socket.receive.buffer.bytes: 1000000
+    # socket.receive.buffer.bytes: 102400 default setting to -1 to use OS default
+    socket.receive.buffer.bytes: -1
+    # socket.request.max.bytes: 104857600 default setting to 100MB probably should not change
+    # socket.send.buffer.bytes: 102400 default setting to -1 to use OS default
+    socket.send.buffer.bytes: -1
+  jmxOptions: {}
+  listeners:
+    plain:
+      port: 9092
+    tls:
+      port: 9093
+  metadataVersion: null
+  rack:
+    topologyKey: topology.kubernetes.io/zone
+  topicOperator: {}
+  userOperator: {}
+  version: null
+

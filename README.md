@@ -1,0 +1,1 @@
+# strimzi-cluster-instance
