@@ -1,0 +1,94 @@
+{{- range .Values.nodePools }}
+{{- $poolName := .name }}
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaNodePool
+metadata:
+  annotations:
+    {{- with .additionalAnnotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  labels:
+    {{- include "strimzi-cluster-instance.labels" $ | nindent 4 }}
+    strimzi.io/cluster: {{ include "strimzi-cluster-instance.fullname" $ }}
+    {{- with .additionalLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  name: {{ include "strimzi-cluster-instance.fullname" $ }}-{{ .name }}
+spec:
+  template:
+    pod:
+      {{- with .metadata }}
+      metadata:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      affinity:
+        {{- if .template.pod.affinity }}        
+        {{- with .template.pod.affinity.nodeAffinity }}
+        nodeAffinity:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .template.pod.affinity.podAffinity }}
+        podAffinity:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- if .template.pod.affinity.podAntiAffinity }}
+        podAntiAffinity:
+          {{- toYaml .template.pod.affinity.podAntiAffinity | nindent 10 }}
+        {{- else }}
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: strimzi.io/cluster
+                    operator: In
+                    values:
+                      - {{ include "strimzi-cluster-instance.fullname" $ }}
+                  - key: strimzi.io/pool-name
+                    operator: In
+                    values:
+                      - {{ include "strimzi-cluster-instance.fullname" $ }}-{{ $poolName }}
+              topologyKey: "kubernetes.io/hostname"
+        {{- end }}
+        {{- end }}
+      {{- with .template.pod.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .template.pod.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml .template.pod.topologySpreadConstraints | nindent 8 }}
+      {{- else }}
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              strimzi.io/cluster: {{ include "strimzi-cluster-instance.fullname" $ }}
+              strimzi.io/pool-name: {{ include "strimzi-cluster-instance.fullname" $ }}-{{ $poolName }}
+      {{- end }}
+      {{- if .template.pod.priorityClassName }}
+      priorityClassName: {{ .priorityClassName }}
+      {{- end }}
+      {{- if .template.pod.tmpDirSizeLimit }}
+      tmpDirSizeLimit: {{ .tmpDirSizeLimit }}
+      {{- end }}
+      {{- with .template.pod.volumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  replicas: {{ .replicas }}
+  roles:
+    {{- range .roles }}
+    - {{ . }}
+    {{- end }}
+  {{- with .storage }}
+  storage:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .resources }}
+  resources:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

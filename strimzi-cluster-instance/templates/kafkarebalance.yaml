@@ -1,0 +1,22 @@
+{{- if .Values.kafkaRebalance.enabled }}
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaRebalance
+metadata:
+  name: {{ include "strimzi-cluster-instance.fullname" . }}
+  {{- if .Values.kafkaRebalance.additionalAnnotations }}
+  annotations:
+    {{- toYaml .Values.kafkaRebalance.additionalAnnotations | nindent 4 }}
+  {{- end }}
+  labels:
+    {{- include "strimzi-cluster-instance.labels" $ | nindent 4 }}
+    strimzi.io/cluster: {{ include "strimzi-cluster-instance.fullname" $ }}
+    {{- if .Values.kafkaRebalance.additionalLabels }}
+    {{- toYaml .Values.kafkaRebalance.additionalLabels | nindent 4 }}
+    {{- end }}
+spec:
+  skipHardGoalCheck: {{ .Values.kafkaRebalance.skipHardGoalCheck }}
+  {{- with .Values.kafkaRebalance.goals }}
+  goals:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

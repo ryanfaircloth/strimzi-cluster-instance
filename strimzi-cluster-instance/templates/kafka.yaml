@@ -1,0 +1,136 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  annotations:
+    strimzi.io/kraft: enabled
+    strimzi.io/node-pools: enabled
+    {{- with .Values.kafka.additionalAnnotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  labels:
+    {{- include "strimzi-cluster-instance.labels" . | nindent 4 }}
+    {{- with .Values.kafka.additionalLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  name: {{ include "strimzi-cluster-instance.fullname" . }}
+spec:
+  kafka:
+    {{- if .Values.kafka.brokerRackInitImage }}
+    brokerRackInitImage: {{ .Values.kafka.brokerRackInitImage }}
+    {{- end }}
+    {{- with .Values.kafka.config }}
+    config:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    listeners:
+      - name: plain
+        port: {{ .Values.kafka.listeners.plain.port }}
+        tls: false
+        type: internal
+      - name: tls
+        port: {{ .Values.kafka.listeners.tls.port }}
+        tls: true
+        type: internal
+    {{- if .Values.kafka.metadataVersion }}
+    metadataVersion: {{ .Values.kafka.metadataVersion }}
+    {{- end }}
+    {{- if .Values.kafka.rack }}
+    rack:
+      {{- toYaml .Values.kafka.rack | nindent 6 }}
+    {{- end }}
+    {{- if .Values.kafka.version }}
+    version: {{ .Values.kafka.version }}
+    {{- end }}
+  cruiseControl:
+    {{- with .Values.kafka.cruiseControl.config }}
+    config:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .Values.kafka.cruiseControl.brokerCapacity }}
+    brokerCapacity:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    resources:
+      {{- toYaml .Values.kafka.cruiseControl.resources | nindent 6 }}
+    {{- with .Values.kafka.cruiseControl.template.pod }}
+    template:
+      pod:
+        {{- with .metadata }}
+        metadata:
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .affinity }}
+        affinity:
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .tolerations }}
+        tolerations:
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .topologySpreadConstraints }}
+        topologySpreadConstraints:
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- if .priorityClassName }}
+        priorityClassName: {{ .priorityClassName }}
+        {{- end }}
+        {{- if .tmpDirSizeLimit }}
+        tmpDirSizeLimit: {{ .tmpDirSizeLimit }}
+        {{- end }}
+        {{- with .volumes }}
+        volumes:
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+    {{- end }}
+  entityOperator:
+    resources:
+      {{- toYaml .Values.kafka.entityOperator.resources | nindent 6 }}
+    {{- with .Values.kafka.entityOperator.template.pod }}
+    template:
+      pod:
+        {{- with .metadata }}
+        metadata:
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .affinity }}
+        affinity:
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .tolerations }}
+        tolerations:
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .topologySpreadConstraints }}
+        topologySpreadConstraints:
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- if .priorityClassName }}
+        priorityClassName: {{ .priorityClassName }}
+        {{- end }}
+        {{- if .tmpDirSizeLimit }}
+        tmpDirSizeLimit: {{ .tmpDirSizeLimit }}
+        {{- end }}
+        {{- with .volumes }}
+        volumes:
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+    topicOperator:
+      {{- if.Values.kafka.entityOperator.topicOperator.watchAnyNamespace }}
+      {{- else }}      
+      {{- if .Values.kafka.entityOperator.topicOperator.watchedNamespace }}
+      watchedNamespace: {{ .Values.kafka.entityOperator.topicOperator.watchedNamespace }}
+      {{- else }}
+      watchedNamespace: {{ .Release.Namespace }}
+      {{- end }}
+      {{- end }}
+      
+    userOperator:
+      {{- if.Values.kafka.entityOperator.userOperator.watchAnyNamespace }}
+      {{- else }}      
+      {{- if .Values.kafka.entityOperator.userOperator.watchedNamespace }}
+      watchedNamespace: {{ .Values.kafka.entityOperator.userOperator.watchedNamespace }}
+      {{- else }}
+      watchedNamespace: {{ .Release.Namespace }}
+      {{- end }}
+      {{- end }}
