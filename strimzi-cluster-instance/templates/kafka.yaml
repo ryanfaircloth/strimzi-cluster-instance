@@ -24,7 +24,54 @@ spec:
     {{- end }}
     listeners:
       {{- toYaml .Values.kafka.listeners | nindent 6 }}
-      {{- toYaml .Values.kafka.additionalListeners | nindent 6 }}
+{{- /* Render listeners as a YAML list, merging .Values.kafka.listeners and additionalListeners */}}
+      {{- $brokerPool := dict }}
+      {{- range $.Values.nodePools }}
+        {{- if eq .name "broker" }}
+          {{- $_ := set $brokerPool "pool" . }}
+        {{- end }}
+      {{- end }}
+      {{- $all := concat .Values.kafka.listeners .Values.kafka.additionalListeners }}
+      {{- range $i, $listener := $all }}
+        {{- if $listener.name }}
+      - name: {{ $listener.name }}
+        port: {{ $listener.port }}
+        type: {{ $listener.type }}
+        tls: {{ $listener.tls }}
+        {{- if $listener.configuration }}
+        configuration:
+          {{- if $listener.configuration.bootstrap }}
+          bootstrap:
+            host: {{ $listener.configuration.bootstrap.host }}
+          {{- end }}
+          {{- if $listener.configuration.brokerCertChainAndKey }}
+          brokerCertChainAndKey:
+            secretName: {{ $listener.configuration.brokerCertChainAndKey.secretName }}
+            certificate: {{ $listener.configuration.brokerCertChainAndKey.certificate }}
+            key: {{ $listener.configuration.brokerCertChainAndKey.key }}
+          {{- end }}
+          {{- if and (or (eq $listener.type "ingress") (eq $listener.type "loadBalancer")) $listener.configuration.hostTemplate }}
+          hostTemplate: {{ $listener.configuration.hostTemplate }}
+          {{- end }}
+          {{- if and (eq $listener.type "gateway") $listener.configuration.hostTemplate }}
+          brokers:
+            {{- $hostTemplate := $listener.configuration.hostTemplate }}
+            {{- $ttl := "60" }}
+            {{- with $brokerPool.pool }}
+              {{- $replicas := .replicas | int }}
+              {{- $startId := 100 }}
+              {{- range $j, $e := until $replicas }}
+            - broker: {{ add $startId $j }}
+              annotations:
+                external-dns.alpha.kubernetes.io/hostname: {{ replace "{nodeId}" (print (add $startId $j)) $hostTemplate }}.
+                external-dns.alpha.kubernetes.io/ttl: "{{ $ttl }}"
+              host: {{ replace "{nodeId}" (print (add $startId $j)) $hostTemplate }}
+              {{- end }}
+            {{- end }}
+          {{- end }}
+        {{- end }}
+        {{- end }}
+      {{- end }}
     {{- if .Values.kafka.metadataVersion }}
     metadataVersion: {{ .Values.kafka.metadataVersion }}
     {{- end }}

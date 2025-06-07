@@ -141,7 +141,7 @@ kafka:
       port: 9093
       type: internal
       tls: true
-  additionalListeners: []
+  additionalListeners: # []
     # - name: ext4tls
     #   port: 9094
     #   type: ingress
@@ -154,7 +154,18 @@ kafka:
     #       certificate: tls.crt
     #       key: tls.key  
     #     hostTemplate: broker-{nodeId}.domain.local              
- 
+    - name: ext4tls
+      port: 9094
+      type: gateway
+      tls: true
+      configuration:
+        bootstrap:
+          host: kafka-dev-bootstrap.domain.local  
+        brokerCertChainAndKey:
+          secretName: kafka-dev-sci-external
+          certificate: tls.crt
+          key: tls.key  
+        hostTemplate: broker-{nodeId}.domain.local  
   metadataVersion: null
   rack:
     topologyKey: topology.kubernetes.io/zone
