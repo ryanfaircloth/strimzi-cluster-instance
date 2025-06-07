@@ -23,7 +23,6 @@ spec:
       {{- toYaml . | nindent 6 }}
     {{- end }}
     listeners:
-      {{- toYaml .Values.kafka.listeners | nindent 6 }}
 {{- /* Render listeners as a YAML list, merging .Values.kafka.listeners and additionalListeners */}}
       {{- $brokerPool := dict }}
       {{- range $.Values.nodePools }}
@@ -36,11 +35,11 @@ spec:
         {{- if $listener.name }}
       - name: {{ $listener.name }}
         port: {{ $listener.port }}
-        type: {{ $listener.type }}
+        type: {{ ternary "cluster-ip" $listener.type (eq $listener.type "gateway") }}
         tls: {{ $listener.tls }}
         {{- if $listener.configuration }}
         configuration:
-          {{- if $listener.configuration.bootstrap }}
+          {{- if and $listener.configuration.bootstrap (ne $listener.type "gateway") }}
           bootstrap:
             host: {{ $listener.configuration.bootstrap.host }}
           {{- end }}
@@ -50,6 +49,7 @@ spec:
             certificate: {{ $listener.configuration.brokerCertChainAndKey.certificate }}
             key: {{ $listener.configuration.brokerCertChainAndKey.key }}
           {{- end }}
+          createBootstrapService: {{ $listener.configuration.createBootstrapService | default true }}
           {{- if and (or (eq $listener.type "ingress") (eq $listener.type "loadBalancer")) $listener.configuration.hostTemplate }}
           hostTemplate: {{ $listener.configuration.hostTemplate }}
           {{- end }}
@@ -62,10 +62,21 @@ spec:
               {{- $startId := 100 }}
               {{- range $j, $e := until $replicas }}
             - broker: {{ add $startId $j }}
+              advertisedHost: {{ replace "{nodeId}" (print (add $startId $j)) $hostTemplate }}
+              advertisedPort: {{ $listener.port }}
+              {{- /* Add annotations and labels to the listener entry, not the Kafka root */}}
+              {{- if $listener.additionalBrokerAnnotations }}
               annotations:
-                external-dns.alpha.kubernetes.io/hostname: {{ replace "{nodeId}" (print (add $startId $j)) $hostTemplate }}.
-                external-dns.alpha.kubernetes.io/ttl: "{{ $ttl }}"
-              host: {{ replace "{nodeId}" (print (add $startId $j)) $hostTemplate }}
+                {{- range $k, $v := $listener.additionalBrokerAnnotations }}
+                {{ $k }}: {{ replace "{nodeId}" (print (add $startId $j)) $v | quote }}
+                {{- end }}
+              {{- end }}
+              {{- if $listener.additionalBrokerLabels }}
+              labels:
+                {{- range $k, $v := $listener.additionalBrokerLabels }}
+                {{ $k }}: {{ replace "{nodeId}" (print (add $startId $j)) $v | quote }}
+                {{- end }}
+              {{- end }}
               {{- end }}
             {{- end }}
           {{- end }}

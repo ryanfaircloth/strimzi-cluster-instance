@@ -154,6 +154,9 @@ kafka:
     #       certificate: tls.crt
     #       key: tls.key  
     #     hostTemplate: broker-{nodeId}.domain.local              
+    #   additionalBrokerAnnotations: {}
+    #   additionalBrokerLabels: {}
+
     - name: ext4tls
       port: 9094
       type: gateway
@@ -164,8 +167,13 @@ kafka:
         brokerCertChainAndKey:
           secretName: kafka-dev-sci-external
           certificate: tls.crt
-          key: tls.key  
+          key: tls.key
+        createBootstrapService: true
         hostTemplate: broker-{nodeId}.domain.local  
+      additionalBrokerAnnotations:
+        external-dns.alpha.kubernetes.io/hostname: broker-{nodeId}.domain.local  
+      additionalBrokerLabels: {}
+
   metadataVersion: null
   rack:
     topologyKey: topology.kubernetes.io/zone
