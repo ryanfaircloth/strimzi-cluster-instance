@@ -13,5 +13,10 @@ spec:
         name: localregistry
         namespace: flux-system
       version: "${strimzi_cluster_instance_version}"
+  dependsOn:
+    - name: cert-manager
+      namespace: cert-manager
+    - name: strimzi-operator
+      namespace: strimzi-operator
   values:
     # Add your custom values here

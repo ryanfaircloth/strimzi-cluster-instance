@@ -13,5 +13,8 @@ spec:
         kind: HelmRepository
         name: envoyproxy-charts
         namespace: flux-system
+  dependsOn:
+    - name: cert-manager
+      namespace: cert-manager
   interval: 5m
   values: {}
