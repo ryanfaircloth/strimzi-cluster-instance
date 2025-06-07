@@ -1,3 +1,5 @@
+
+
 # Namespace for strimzi-cluster-instance HelmRelease
 resource "kubernetes_namespace" "kafka" {
   metadata {

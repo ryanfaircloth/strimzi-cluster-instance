@@ -1,0 +1,52 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta2
+kind: HelmRelease
+metadata:
+  name: cluster-issuer
+  namespace: flux-system
+spec:
+  interval: 5m
+  chart:
+    spec:
+      chart: raw
+      sourceRef:
+        kind: HelmRepository
+        name: bedag
+        namespace: flux-system
+      version: "2.0.0"
+  dependsOn:
+    - name: cert-manager
+      namespace: cert-manager
+  values:
+    resources:
+      - 
+        apiVersion: cert-manager.io/v1
+        kind: ClusterIssuer
+        metadata:
+          name: selfsigned-cluster-issuer
+        spec:
+          selfSigned: {}
+      -
+        apiVersion: cert-manager.io/v1
+        kind: Certificate
+        metadata:
+          name: ca
+        spec:
+          isCA: true
+          commonName: cluster-ca
+          secretName: cluster-root-secret
+          privateKey:
+            algorithm: ECDSA
+            size: 256
+          issuerRef:
+            name: selfsigned-cluster-issuer
+            kind: ClusterIssuer
+            group: cert-manager.io
+      -
+        apiVersion: cert-manager.io/v1
+        kind: ClusterIssuer
+        metadata:
+          name: cluster-ca-issuer
+        spec:
+          ca:
+            # `ClusterIssuer` resource is not namespaced, so `secretName` is assumed to reference secret in `cert-manager` namespace.
+            secretName: cluster-root-secret
