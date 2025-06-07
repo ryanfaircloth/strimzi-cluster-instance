@@ -14,7 +14,7 @@ spec:
         namespace: flux-system
       version: "${strimzi_cluster_instance_version}"
   dependsOn:
-    - name: cert-manager
+    - name: trust-manager
       namespace: cert-manager
     - name: strimzi-operator
       namespace: strimzi-operator
