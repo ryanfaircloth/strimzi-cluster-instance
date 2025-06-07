@@ -1,0 +1,23 @@
+{{- if .Values.certificates.listeners.internal.enabled | default false }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "strimzi-cluster-instance.fullname" . }}-internal
+spec:
+  secretName: {{ include "strimzi-cluster-instance.fullname" . }}-internal
+  subject:
+    organizations:
+      - {{ .Release.Namespace }}
+  usages:
+    - server auth
+    - client auth
+  dnsNames:
+    - "{{ include "strimzi-cluster-instance.fullname" . }}-kafka-bootstrap.{{ .Release.Namespace }}.svc.cluster.local"
+    - "{{ include "strimzi-cluster-instance.fullname" . }}-kafka-bootstrap.{{ .Release.Namespace }}.svc"
+    - "{{ include "strimzi-cluster-instance.fullname" . }}-kafka-bootstrap"
+    - "*.{{ include "strimzi-cluster-instance.fullname" . }}-kafka-brokers.{{ .Release.Namespace }}.svc.cluster.local"
+    - "*.{{ include "strimzi-cluster-instance.fullname" . }}-kafka-brokers.{{ .Release.Namespace }}.svc"
+  issuerRef:
+    name: {{ .Values.certificates.listeners.internal.issuerRef.name }}
+    kind: {{ .Values.certificates.listeners.internal.issuerRef.kind }}
+{{- end }}    

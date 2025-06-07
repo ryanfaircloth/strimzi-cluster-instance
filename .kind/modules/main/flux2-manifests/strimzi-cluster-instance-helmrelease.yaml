@@ -14,9 +14,40 @@ spec:
         namespace: flux-system
       version: "${strimzi_cluster_instance_version}"
   dependsOn:
+    - name: cert-manager
+      namespace: cert-manager
     - name: trust-manager
+      namespace: cert-manager
+    - name: cluster-issuer
       namespace: cert-manager
     - name: strimzi-operator
       namespace: strimzi-operator
   values:
-    # Add your custom values here
+    kafka:
+      additionalListeners:
+      - name: ext4tls
+        port: 9094
+        type: ingress
+        tls: true
+        configuration:
+          bootstrap:
+            host: kafka-dev-bootstrap.domain.local  
+          brokerCertChainAndKey:
+            secretName: kafka-dev-sci-external
+            certificate: tls.crt
+            key: tls.key  
+          hostTemplate: broker-{nodeId}.domain.local    
+    certificates:
+      listeners:
+        internal:
+          enabled: true
+          issuerRef:
+            name: selfsigned-cluster-issuer
+            kind: ClusterIssuer
+            group: cert-manager.io
+        external:
+          enabled: true
+          issuerRef:
+            name: selfsigned-cluster-issuer
+            kind: ClusterIssuer
+            group: cert-manager.io

@@ -133,10 +133,28 @@ kafka:
     transaction.state.log.replication.factor: 3
   jmxOptions: {}
   listeners:
-    plain:
+    - name: int4plain
       port: 9092
-    tls:
+      type: internal
+      tls: false      
+    - name: int4tls
       port: 9093
+      type: internal
+      tls: true
+  additionalListeners: []
+    # - name: ext4tls
+    #   port: 9094
+    #   type: ingress
+    #   tls: true
+    #   configuration:
+    #     bootstrap:
+    #       host: kafka-dev-bootstrap.domain.local  
+    #     brokerCertChainAndKey:
+    #       secretName: kafka-dev-sci-external
+    #       certificate: tls.crt
+    #       key: tls.key  
+    #     hostTemplate: broker-{nodeId}.domain.local              
+ 
   metadataVersion: null
   rack:
     topologyKey: topology.kubernetes.io/zone
@@ -207,3 +225,30 @@ kafkaRebalance:
     - NetworkOutboundCapacityGoal
     - CpuCapacityGoal
     - ReplicaCapacityGoal
+
+certificates:
+  listeners:
+    internal:
+      enabled: false
+      issuerRef:
+        name: 
+        kind: ClusterIssuer
+        group: cert-manager.io
+      additionalAnnotations: {}
+      additionalLabels: {}
+      subject:
+        organizations:
+          - "{{ .Release.Namespace }}"
+      dnsNames: []
+    external:
+      enabled: true
+      issuerRef:
+        name: 
+        kind: ClusterIssuer
+        group: cert-manager.io
+      additionalAnnotations: {}
+      additionalLabels: {}
+      subject:
+        organizations:
+          - "{{ .Release.Namespace }}"
+      dnsNames: []

@@ -1,0 +1,54 @@
+{{- if .Values.certificates.listeners.external.enabled | default false }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "strimzi-cluster-instance.fullname" . }}-external
+  {{- with .Values.certificates.listeners.external.additionalAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.certificates.listeners.external.additionalLabels }}
+  labels:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  secretName: {{ include "strimzi-cluster-instance.fullname" . }}-external
+  subject:
+    organizations:
+      - {{ .Release.Namespace }}
+  usages:
+    - server auth
+    - client auth
+  dnsNames:
+    {{- range .Values.kafka.additionalListeners }}
+      {{- if eq .name "ext4tls" }}
+    - {{ .configuration.bootstrap.host }}
+      {{- end }}
+    {{- end }}
+    {{- $dnsNames := .Values.certificates.listeners.external.dnsNames }}
+    {{- if not $dnsNames }}
+      {{- $hostTemplate := "" }}
+      {{- range .Values.kafka.additionalListeners }}
+        {{- if and (eq .name "ext4tls") .configuration.hostTemplate }}
+          {{- $hostTemplate = .configuration.hostTemplate }}
+        {{- end }}
+      {{- end }}
+      {{- $replicas := 0 }}
+      {{- range .Values.nodePools }}
+        {{- if eq .name "broker" }}
+          {{- $replicas = int .replicas }}
+        {{- end }}
+      {{- end }}
+{{- range $i, $ := until $replicas }}
+    - {{ tpl $hostTemplate (dict "nodeId" (add $i 100 | toString)) | replace "{nodeId}" (add $i 100 | toString) }}
+{{- end }}
+    {{- else }}
+      {{- range $dnsNames }}
+    - {{ . }}
+      {{- end }}
+    {{- end }}
+    
+  issuerRef:
+    name: {{ .Values.certificates.listeners.external.issuerRef.name }}
+    kind: {{ .Values.certificates.listeners.external.issuerRef.kind }}
+{{- end }}    

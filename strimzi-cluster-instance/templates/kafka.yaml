@@ -23,14 +23,8 @@ spec:
       {{- toYaml . | nindent 6 }}
     {{- end }}
     listeners:
-      - name: plain
-        port: {{ .Values.kafka.listeners.plain.port }}
-        tls: false
-        type: internal
-      - name: tls
-        port: {{ .Values.kafka.listeners.tls.port }}
-        tls: true
-        type: internal
+      {{- toYaml .Values.kafka.listeners | nindent 6 }}
+      {{- toYaml .Values.kafka.additionalListeners | nindent 6 }}
     {{- if .Values.kafka.metadataVersion }}
     metadataVersion: {{ .Values.kafka.metadataVersion }}
     {{- end }}
