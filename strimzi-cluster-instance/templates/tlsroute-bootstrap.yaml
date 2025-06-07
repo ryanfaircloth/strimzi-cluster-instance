@@ -1,0 +1,21 @@
+
+{{- range $listener := .Values.kafka.additionalListeners }}
+  {{- if and (eq $listener.type "gateway") ($listener.generateTLSRoute | default true) }}
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: TLSRoute
+metadata:
+  name: {{ include "strimzi-cluster-instance.fullname" $ }}-{{ printf "tlsroute-%s-broker" $listener.name | trunc 63 | trimSuffix "-" }}
+spec:
+  hostnames:
+    - {{ $listener.configuration.bootstrap.host | default (printf "%s-bootstrap" $listener.name) }}
+  parentRefs:
+  {{- toYaml $.Values.tlsRoutes.parentRefs | nindent 2 }}
+  rules:
+    - backendRefs:
+        - group: ""
+          kind: Service
+          name: {{ include "strimzi-cluster-instance.fullname" $ }}-kafka-{{ printf $listener.name }}-bootstrap
+          port: {{ $listener.port }}
+  {{- end }}
+{{- end }}

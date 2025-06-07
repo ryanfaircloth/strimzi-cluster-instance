@@ -51,3 +51,10 @@ spec:
             name: selfsigned-cluster-issuer
             kind: ClusterIssuer
             group: cert-manager.io
+tlsRoutes:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: kafka-gateway
+      namespace: envoy-gateway-system
+      sectionName: kafka-listener

@@ -161,6 +161,7 @@ kafka:
       port: 9094
       type: gateway
       tls: true
+      generateTLSRoute: true
       configuration:
         bootstrap:
           host: kafka-dev-bootstrap.domain.local  
@@ -245,6 +246,13 @@ kafkaRebalance:
     - CpuCapacityGoal
     - ReplicaCapacityGoal
 
+tlsRoutes:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: my-gateway
+      namespace: strimzi
+      sectionName: kafka-listener
 certificates:
   listeners:
     internal:

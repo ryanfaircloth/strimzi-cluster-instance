@@ -1,5 +1,6 @@
 {
     "cSpell.words": [
         "strimzi"
-    ]
+    ],
+    "makefile.configureOnOpen": true
 }
