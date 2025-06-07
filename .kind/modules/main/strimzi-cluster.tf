@@ -3,6 +3,9 @@ resource "kubernetes_namespace" "kafka" {
   metadata {
     name = "kafka"
   }
+  depends_on = [
+    resource.helm_release.flux_instance
+  ]
 }
 
 

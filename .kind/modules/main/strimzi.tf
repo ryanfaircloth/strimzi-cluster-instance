@@ -2,6 +2,9 @@ resource "kubernetes_namespace" "strimzi_operator" {
   metadata {
     name = "strimzi-operator"
   }
+  depends_on = [
+    resource.helm_release.flux_instance
+  ]
 }
 
 resource "kubectl_manifest" "strimzi_charts_oci_helmrepository" {
