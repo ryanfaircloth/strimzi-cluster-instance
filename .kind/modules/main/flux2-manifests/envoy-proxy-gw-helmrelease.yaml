@@ -1,0 +1,61 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta2
+kind: HelmRelease
+metadata:
+  name: kind-envoy-proxy-gw
+  namespace: envoy-gateway-system
+spec:
+  interval: 5m
+  chart:
+    spec:
+      chart: raw
+      sourceRef:
+        kind: HelmRepository
+        name: bedag
+        namespace: flux-system
+      version: "2.0.0"
+  dependsOn:
+    - name: cert-manager
+      namespace: cert-manager
+    - name: trust-manager
+      namespace: cert-manager
+    - name: envoyproxy
+      namespace: envoy-gateway-system
+  values:
+    resources:
+      - 
+        apiVersion: gateway.networking.k8s.io/v1
+        kind: GatewayClass
+        metadata:
+          name: kind-gateway-class
+          namespace: envoy-gateway-system
+        spec:
+          controllerName: gateway.envoyproxy.io/gatewayclass-controller
+          parametersRef:
+            group: gateway.envoyproxy.io
+            kind: EnvoyProxy
+            name: kind-proxy-config
+            namespace: envoy-gateway-system
+      - 
+        apiVersion: gateway.envoyproxy.io/v1alpha1
+        kind: EnvoyProxy
+        metadata:
+          name: kind-proxy-config
+          namespace: envoy-gateway-system
+        spec:
+          provider:
+            type: Kubernetes
+            kubernetes:
+              envoyDeployment:
+                replicas: 1
+              envoyService:
+                type: NodePort
+                patch:
+                  value:
+                    spec:
+                      ports:
+                      # Port 9092 on your laptop gets forwarded to NodePort 30992 on the KIND cluster.
+                      - name: kafka-port
+                        nodePort: 30992
+                        port: 9092
+                        protocol: TCP
+                        targetPort: 9092

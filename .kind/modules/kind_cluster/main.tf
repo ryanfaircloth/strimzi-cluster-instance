@@ -29,10 +29,22 @@ resource "kind_cluster" "default" {
     endpoint = ["http://kind-registry:5000"]
 EOT
     ]
+
     node {
       role = "control-plane"
       labels = {
         "topology.kubernetes.io/zone" = "az-1"
+      }
+      kubeadm_config_patches = [<<EOT
+kind: InitConfiguration
+nodeRegistration:
+  kubeletExtraArgs:
+    node-labels: "ingress-ready=true"
+EOT
+      ]
+      extra_port_mappings {
+        container_port = 30992
+        host_port      = 9092
       }
     }
     node {
