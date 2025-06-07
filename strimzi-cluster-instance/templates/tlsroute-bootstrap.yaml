@@ -5,7 +5,7 @@
 apiVersion: gateway.networking.k8s.io/v1alpha2
 kind: TLSRoute
 metadata:
-  name: {{ include "strimzi-cluster-instance.fullname" $ }}-{{ printf "tlsroute-%s-bootstrap" $listener.name | trunc 63 | trimSuffix "-" }}
+  name: {{ include "strimzi-cluster-instance.fullname" $ }}-{{ printf "%s-bootstrap" $listener.name | trunc 63 | trimSuffix "-" }}
 spec:
   hostnames:
     - {{ $listener.configuration.bootstrap.host | default (printf "%s-bootstrap" $listener.name) }}

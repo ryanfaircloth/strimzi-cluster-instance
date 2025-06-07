@@ -1,0 +1,33 @@
+{{- $brokerPool := dict }}
+{{- range $.Values.nodePools }}
+  {{- if eq .name "broker" }}
+    {{- $_ := set $brokerPool "pool" . }}
+  {{- end }}
+{{- end }}
+{{- range $listener := .Values.kafka.additionalListeners }}
+  {{- if and (eq $listener.type "gateway") ($listener.generateTLSRoute | default true) }}
+    {{- $hostTemplate := $listener.configuration.hostTemplate }}
+    {{- with $brokerPool.pool }}
+      {{- $replicas := .replicas | int }}
+      {{- $startId := 100 }}
+      {{- range $j := until $replicas }}
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: TLSRoute
+metadata:
+  name: {{ include "strimzi-cluster-instance.fullname" $ }}-{{ printf "%s-broker-%d" $listener.name (add $startId $j) | trunc 63 | trimSuffix "-" }}
+spec:
+  hostnames:
+    - {{ replace "{nodeId}" (print (add $startId $j)) $hostTemplate }}
+  parentRefs:
+  {{- toYaml $.Values.tlsRoutes.parentRefs | nindent 2 }}
+  rules:
+    - backendRefs:
+        - group: ""
+          kind: Service
+          name: {{ include "strimzi-cluster-instance.fullname" $ }}-{{ printf "%s-broker-%d" $listener.name (add $startId $j) | trunc 63 | trimSuffix "-" }}
+          port: {{ $listener.port }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
