@@ -41,6 +41,7 @@ up-dev:
 	@if [ ! -f .kind/terraform.tfstate ]; then \
 		pushd .kind && TF_VAR_strimzi_cluster_instance_version=$(VERSION) terraform init && popd; \
 	fi
+	pushd .kind && TF_VAR_strimzi_cluster_instance_version=$(VERSION) terraform apply -target=module.kind_cluster -auto-approve && popd
 	pushd .kind && TF_VAR_strimzi_cluster_instance_version=$(VERSION) terraform apply -auto-approve && popd
 
 ## Destroy all Terraform-managed resources

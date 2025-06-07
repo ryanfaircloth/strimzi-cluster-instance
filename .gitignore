@@ -54,3 +54,4 @@ terraform.rc
 #crash.*.log
 .kind/.terraform.lock.hcl
 *.tgz
+.kind/strimzi-cluster-instance-config
