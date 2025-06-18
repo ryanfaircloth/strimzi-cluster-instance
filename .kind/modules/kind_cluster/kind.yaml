@@ -1,0 +1,46 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+containerdConfigPatches:
+- |-
+  [plugins."io.containerd.grpc.v1.cri".registry.mirrors."localhost:5050"]
+    endpoint = ["http://kind-registry:5000"]
+
+nodes:
+- role: control-plane
+- role: worker
+  labels:
+    topology.kubernetes.io/zone: "az-1"
+    topology.kubernetes.io/region: "kind"
+    test.io/role: "gateway"
+  extraPortMappings:
+  - containerPort: 39094
+    hostPort: 39094
+- role: worker
+  labels:
+    topology.kubernetes.io/zone: "az-1"
+    topology.kubernetes.io/region: "kind"
+    test.io/role: "sensitive"
+- role: worker
+  labels:
+    topology.kubernetes.io/zone: "az-1"
+    topology.kubernetes.io/region: "kind"
+- role: worker
+  labels:
+    topology.kubernetes.io/zone: "az-2"
+    topology.kubernetes.io/region: "kind"
+    test.io/role: "sensitive"
+- role: worker
+  labels:
+    topology.kubernetes.io/zone: "az-2"
+    topology.kubernetes.io/region: "kind"
+    test.io/role: "worker"
+- role: worker
+  labels:
+    topology.kubernetes.io/zone: "az-3"
+    topology.kubernetes.io/region: "kind"
+    test.io/role: "sensitive"
+- role: worker
+  labels:
+    topology.kubernetes.io/zone: "az-3"
+    topology.kubernetes.io/region: "kind"
+    test.io/role: "worker"

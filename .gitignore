@@ -56,3 +56,27 @@ terraform.rc
 *.tgz
 .kind/strimzi-cluster-instance-config
 .test/*
+kafka_*
+
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Icon must end with two carriage returns
+Icon
+
+# Thumbnails
+._*
+
+# Files that might appear on network shares
+.Spotlight-V100
+.Trashes
+
+# macOS folder attributes
+.DS_Store
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk

@@ -13,7 +13,7 @@ nodePools:
       - broker
     replicas: 3
     additionalAnnotations:
-    strimzi.io/next-node-ids: "[0-99]"
+      strimzi.io/next-node-ids: "[100-999]"
     template:
       pod:
         metadata:
@@ -59,7 +59,7 @@ nodePools:
       - controller
     replicas: 3
     additionalAnnotations:
-        strimzi.io/next-node-ids: "[100-999]"
+        strimzi.io/next-node-ids: "[0-99]"
     template:
       pod:
         metadata:
@@ -171,8 +171,7 @@ kafka:
           key: tls.key
         createBootstrapService: true
         hostTemplate: broker-{nodeId}.domain.local  
-      additionalBrokerAnnotations:
-        external-dns.alpha.kubernetes.io/hostname: broker-{nodeId}.domain.local  
+      additionalBrokerAnnotations: {}
       additionalBrokerLabels: {}
 
   metadataVersion: null
@@ -250,8 +249,8 @@ tlsRoutes:
   parentRefs:
     - group: gateway.networking.k8s.io
       kind: Gateway
-      name: my-gateway
-      namespace: strimzi
+      name: kafka-gateway
+      namespace: envoy-gateway-system
       sectionName: kafka-listener
 certificates:
   listeners:

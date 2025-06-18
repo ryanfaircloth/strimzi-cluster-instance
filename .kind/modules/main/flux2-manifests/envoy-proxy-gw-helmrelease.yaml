@@ -26,7 +26,7 @@ spec:
         apiVersion: gateway.networking.k8s.io/v1
         kind: GatewayClass
         metadata:
-          name: kind-kafka-gateway-class
+          name: kind-gateway
           namespace: envoy-gateway-system
         spec:
           controllerName: gateway.envoyproxy.io/gatewayclass-controller
@@ -42,33 +42,52 @@ spec:
           name: kind-kafka-proxy-config
           namespace: envoy-gateway-system
         spec:
+          # logging:
+          #   level:
+          #     default: debug
           provider:
             type: Kubernetes
             kubernetes:
               envoyDeployment:
                 replicas: 1
+                pod:
+                  affinity:
+                    nodeAffinity:
+                      requiredDuringSchedulingIgnoredDuringExecution:
+                        nodeSelectorTerms:
+                          - matchExpressions:
+                              - key: test.io/role
+                                operator: In
+                                values:
+                                  - "gateway"
+                  tolerations:
+                    - operator: Exists
+
               envoyService:
                 type: NodePort
                 patch:
                   value:
                     spec:
                       ports:
-                      # Port 9092 on your laptop gets forwarded to NodePort 30992 on the KIND cluster.
+                      # Port 9094 on your laptop gets forwarded to NodePort 39094 on the KIND cluster.
                       - name: kafka-port
-                        nodePort: 30992
-                        port: 9092
+                        nodePort: 30994
+                        port: 9094
                         protocol: TCP
-                        targetPort: 9092
+                        targetPort: 9094
       -
         apiVersion: gateway.networking.k8s.io/v1
         kind: Gateway
         metadata:
           name: kafka-gateway
         spec:
-          gatewayClassName: kind-kafka-gateway-class
+          gatewayClassName: kind-gateway
           listeners:
           - name: kafka-listener
             protocol: TLS
-            port: 9092
+            port: 9094
             tls:
               mode: Passthrough
+            allowedRoutes:
+              namespaces:
+                from: All

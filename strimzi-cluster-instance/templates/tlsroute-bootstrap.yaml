@@ -16,6 +16,7 @@ spec:
         - group: ""
           kind: Service
           name: {{ include "strimzi-cluster-instance.fullname" $ }}-kafka-{{ printf $listener.name }}-bootstrap
+          namespace: {{ $.Release.Namespace }}
           port: {{ $listener.port }}
   {{- end }}
 {{- end }}

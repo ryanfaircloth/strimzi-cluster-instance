@@ -13,7 +13,7 @@
       {{- range $j := until $replicas }}
 ---
 apiVersion: gateway.networking.k8s.io/v1alpha2
-kind: TLSRoute
+kind: ge
 metadata:
   name: {{ include "strimzi-cluster-instance.fullname" $ }}-{{ printf "%s-broker-%d" $listener.name (add $startId $j) | trunc 63 | trimSuffix "-" }}
 spec:
@@ -25,7 +25,8 @@ spec:
     - backendRefs:
         - group: ""
           kind: Service
-          name: {{ include "strimzi-cluster-instance.fullname" $ }}-{{ printf "%s-broker-%d" $listener.name (add $startId $j) | trunc 63 | trimSuffix "-" }}
+          name: {{ include "strimzi-cluster-instance.fullname" $ }}-{{ include "strimzi-cluster-instance.fullname" $ }}-{{ printf "broker-%s-%d" $listener.name (add $startId $j) | trunc 63 | trimSuffix "-" }}
+          namespace: {{ $Release.Namespace }}
           port: {{ $listener.port }}
       {{- end }}
     {{- end }}

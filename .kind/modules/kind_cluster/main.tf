@@ -33,38 +33,71 @@ EOT
     node {
       role = "control-plane"
       labels = {
-        "topology.kubernetes.io/zone" = "az-1"
+        "topology.kubernetes.io/zone"   = "az-1"
+        "topology.kubernetes.io/region" = "kind"
       }
-      kubeadm_config_patches = [<<EOT
-kind: InitConfiguration
-nodeRegistration:
-  kubeletExtraArgs:
-    node-labels: "ingress-ready=true"
-EOT
-      ]
+    }
+    node {
+      role = "worker"
+      labels = {
+        "topology.kubernetes.io/zone"   = "az-1"
+        "topology.kubernetes.io/region" = "kind"
+        "test.io/role"                  = "gateway"
+      }
       extra_port_mappings {
-        container_port = 30992
-        host_port      = 9092
+        container_port = 30994
+        host_port      = 9094
       }
     }
     node {
       role = "worker"
       labels = {
-        "topology.kubernetes.io/zone" = "az-1"
+        "topology.kubernetes.io/zone"   = "az-1"
+        "topology.kubernetes.io/region" = "kind"
+        "test.io/role"                  = "sensitive"
       }
     }
     node {
       role = "worker"
       labels = {
-        "topology.kubernetes.io/zone" = "az-2"
+        "topology.kubernetes.io/zone"   = "az-1"
+        "topology.kubernetes.io/region" = "kind"
+        "test.io/role"                  = "worker"
+      }
+    }
+    node {
+      role = "worker"
+      labels = {
+        "topology.kubernetes.io/zone"   = "az-2"
+        "topology.kubernetes.io/region" = "kind"
+        "test.io/role"                  = "sensitive"
+      }
+    }
+    node {
+      role = "worker"
+      labels = {
+        "topology.kubernetes.io/zone"   = "az-2"
+        "topology.kubernetes.io/region" = "kind"
+        "test.io/role"                  = "worker"
       }
     }
     node {
       role = "worker"
       labels = {
         "topology.kubernetes.io/zone" = "az-3"
+        "topology.kubernetes.io/region" = "kind"
+        "test.io/role" = "sensitive"
       }
     }
+    node {
+      role = "worker"
+      labels = {
+        "topology.kubernetes.io/zone" = "az-3"
+        "topology.kubernetes.io/region" = "kind"
+        "test.io/role" = "worker"
+      }
+    }
+
   }
 }
 

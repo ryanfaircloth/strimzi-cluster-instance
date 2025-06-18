@@ -17,4 +17,17 @@ spec:
     - name: cert-manager
       namespace: cert-manager
   interval: 5m
-  values: {}
+  values:
+    deployment:
+      pod:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: test.io/role
+                      operator: In
+                      values:
+                        - "gateway"
+        tolerations:
+          - operator: Exists
