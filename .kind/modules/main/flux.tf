@@ -1,5 +1,5 @@
 
-resource "kubernetes_namespace" "flux_system" {
+resource "kubernetes_namespace_v1" "flux_system" {
   metadata {
     name = var.flux_namespace
   }
@@ -14,7 +14,7 @@ resource "kubernetes_namespace" "flux_system" {
 
 resource "helm_release" "flux_operator" {
   name       = "flux-operator"
-  namespace  = kubernetes_namespace.flux_system.metadata[0].name
+  namespace  = kubernetes_namespace_v1.flux_system.metadata[0].name
   repository = "oci://ghcr.io/controlplaneio-fluxcd/charts"
   chart      = "flux-operator"
   version    = "0.38.1"
@@ -25,7 +25,7 @@ resource "helm_release" "flux_operator" {
 
 resource "helm_release" "flux_instance" {
   name       = "flux-instance"
-  namespace  = kubernetes_namespace.flux_system.metadata[0].name
+  namespace  = kubernetes_namespace_v1.flux_system.metadata[0].name
   repository = "oci://ghcr.io/controlplaneio-fluxcd/charts"
   chart      = "flux-instance"
   version    = "0.38.1"

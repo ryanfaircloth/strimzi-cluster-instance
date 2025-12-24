@@ -1,7 +1,7 @@
 
 
 # Namespace for strimzi-cluster-instance HelmRelease
-resource "kubernetes_namespace" "kafka" {
+resource "kubernetes_namespace_v1" "kafka" {
   metadata {
     name = "kafka"
   }
@@ -23,7 +23,7 @@ resource "kubectl_manifest" "strimzi_cluster_instance_helmrelease" {
   yaml_body = templatefile("${path.module}/flux2-manifests/strimzi-cluster-instance-helmrelease.yaml", {
     strimzi_cluster_instance_version = var.strimzi_cluster_instance_version
   })
-  override_namespace = kubernetes_namespace.kafka.metadata[0].name
+  override_namespace = kubernetes_namespace_v1.kafka.metadata[0].name
   depends_on         = [kubectl_manifest.localregistry_helmrepository]
   wait_for {
     field {
