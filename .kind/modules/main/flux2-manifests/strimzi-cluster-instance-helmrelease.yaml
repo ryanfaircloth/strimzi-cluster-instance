@@ -18,6 +18,8 @@ spec:
       namespace: cert-manager
     - name: strimzi-operator
       namespace: strimzi-operator
+    - name: strimzi-access-operator
+      namespace: strimzi-operator
   valuesFrom:
     - kind: ConfigMap
       name: flux-strimzi-cluster-values

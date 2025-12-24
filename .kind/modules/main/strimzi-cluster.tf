@@ -25,7 +25,7 @@ resource "kubernetes_config_map_v1" "strimzi_cluster_values" {
   }
 
   data = {
-    "yaml.values" = templatefile("${path.module}/helm-values/flux-strimzi-cluster-values.yaml", {
+    "values.yaml" = templatefile("${path.module}/helm-values/flux-strimzi-cluster-values.yaml", {
       gateway_dns_suffix = var.gateway_dns_suffix
     })
   }
@@ -41,7 +41,12 @@ resource "kubectl_manifest" "strimzi_cluster_instance_helmrelease" {
     strimzi_cluster_instance_version = var.strimzi_cluster_instance_version
   })
   override_namespace = kubernetes_namespace_v1.kafka.metadata[0].name
-  depends_on         = [kubectl_manifest.localregistry_helmrepository, kubernetes_config_map_v1.strimzi_cluster_values]
+  depends_on = [
+    kubectl_manifest.localregistry_helmrepository,
+    kubernetes_config_map_v1.strimzi_cluster_values,
+    kubectl_manifest.trust_manager_helmrelease,
+    kubectl_manifest.strimzi_access_operator
+  ]
   wait_for {
     field {
       key   = "status.conditions.[0].status"
