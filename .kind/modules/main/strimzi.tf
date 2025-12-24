@@ -29,3 +29,19 @@ resource "kubectl_manifest" "strimzi_operator" {
     }
   }
 }
+
+# Strimzi Access Operator HelmRelease
+resource "kubectl_manifest" "strimzi_access_operator" {
+  yaml_body          = file("${path.module}/flux2-manifests/strimzi-access-operator-helmrelease.yaml")
+  override_namespace = kubernetes_namespace_v1.strimzi_operator.metadata[0].name
+  depends_on = [
+    kubectl_manifest.strimzi_operator
+  ]
+  wait_for {
+    field {
+      key   = "status.conditions.[0].status"
+      value = "True"
+    }
+  }
+}
+
