@@ -1,0 +1,93 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta2
+kind: HelmRelease
+metadata:
+  name: gateway
+  namespace: flux-system
+spec:
+  interval: 5m
+  chart:
+    spec:
+      chart: raw
+      sourceRef:
+        kind: HelmRepository
+        name: bedag
+        namespace: flux-system
+      version: "2.0.2"
+  dependsOn:
+    - name: cert-manager
+      namespace: cert-manager
+    - name: trust-manager
+      namespace: cert-manager
+    - name: envoyproxy
+      namespace: envoy-gateway-system
+  values:
+    resources:
+      -
+        apiVersion: gateway.envoyproxy.io/v1alpha1
+        kind: EnvoyProxy
+        metadata:
+          name: cluster-gateway
+          namespace: envoy-gateway-system
+        spec:
+          provider:
+            type: Kubernetes
+            kubernetes:
+              envoyDeployment:
+                replicas: 1
+                pod:
+                  tolerations:
+                  - key: node-role.kubernetes.io/control-plane
+                    effect: NoSchedule
+                  affinity:
+                    nodeAffinity:
+                      requiredDuringSchedulingIgnoredDuringExecution:
+                        nodeSelectorTerms:
+                        - matchExpressions:
+                          - key: ingress-ready
+                            operator: In
+                            values:
+                            - "true"
+              envoyService:
+                type: NodePort
+                patch:
+                  value:
+                    spec:
+                      ports:
+                      # Port 9092 on your laptop gets forwarded to NodePort 30992 on the KIND cluster.
+                      - name: kafka-port
+                        nodePort: 30994
+                        port: 9094
+                        protocol: TCP
+                        targetPort: 9094      
+      - 
+        apiVersion: gateway.networking.k8s.io/v1
+        kind: GatewayClass
+        metadata:
+          name: cluster-gateway-class
+          namespace: envoy-gateway-system
+        spec:
+          controllerName: gateway.envoyproxy.io/gatewayclass-controller
+          parametersRef:
+            group: gateway.envoyproxy.io
+            kind: EnvoyProxy
+            name: cluster-gateway
+            namespace: envoy-gateway-system      
+      -
+        apiVersion: gateway.networking.k8s.io/v1
+        kind: Gateway
+        metadata:
+          name: cluster-gateway
+          # Envoy Gateway can control gateways in all namespaces. Depending on your
+          # cluster permissions model, a Gateway can be in the envoy-gateway-system namespace
+          # or in the same namespace as your applications.
+        spec:
+          gatewayClassName: cluster-gateway-class
+          listeners:
+          - name: kafka-listener
+            protocol: TLS
+            port: 9094
+            tls:
+              mode: Passthrough
+            allowedRoutes:
+              namespaces:
+                from: All

@@ -18,5 +18,7 @@ spec:
       namespace: cert-manager
     - name: strimzi-operator
       namespace: strimzi-operator
-  values:
-    # Add your custom values here
+  valuesFrom:
+    - kind: ConfigMap
+      name: flux-strimzi-cluster-values
+      valuesKey: values.yaml

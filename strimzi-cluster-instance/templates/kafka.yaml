@@ -31,6 +31,33 @@ spec:
         port: {{ .Values.kafka.listeners.tls.port }}
         tls: true
         type: internal
+      {{- if .Values.gateway.enabled }}
+      - name: tlsext
+        port: {{ .Values.kafka.listeners.tlsext.port }}
+        tls: true
+        type: {{ .Values.kafka.listeners.tlsext.type | default "cluster-ip" }}
+        authentication:
+          type: {{ .Values.kafka.listeners.tlsext.authentication.type | default "scram-sha-512" }}
+        configuration:
+          brokerCertChainAndKey:
+            certificate: tls.crt
+            key: tls.key
+            secretName: {{ include "strimzi-cluster-instance.fullname" . }}-gateway-cert
+          {{- $brokerReplicas := 0 }}
+          {{- range .Values.nodePools }}
+            {{- if has "broker" .roles }}
+              {{- $brokerReplicas = .replicas }}
+            {{- end }}
+          {{- end }}
+          brokers:
+          {{- range $i := until (int $brokerReplicas) }}
+          - advertisedHost: broker-{{ $i }}.{{ $.Values.gateway.dnsSuffix }}
+            advertisedPort: {{ $.Values.gateway.advertisedPort }}
+            broker: {{ $i }}
+          {{- end }}
+          createBootstrapService: true
+      {{- end }}
+
     {{- if .Values.kafka.metadataVersion }}
     metadataVersion: {{ .Values.kafka.metadataVersion }}
     {{- end }}

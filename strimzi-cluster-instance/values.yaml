@@ -13,7 +13,7 @@ nodePools:
       - broker
     replicas: 3
     additionalAnnotations:
-    strimzi.io/next-node-ids: "[0-99]"
+    strimzi.io/next-node-ids: "[0-499]"
     template:
       pod:
         metadata:
@@ -59,7 +59,7 @@ nodePools:
       - controller
     replicas: 3
     additionalAnnotations:
-        strimzi.io/next-node-ids: "[100-999]"
+        strimzi.io/next-node-ids: "[500-600]"
     template:
       pod:
         metadata:
@@ -137,6 +137,11 @@ kafka:
       port: 9092
     tls:
       port: 9093
+    tlsext: # Enable TLS listener for external access by enabling gateway
+      port: 9094
+      type: cluster-ip
+      authentication:
+        type: scram-sha-512
   metadataVersion: null
   rack:
     topologyKey: topology.kubernetes.io/zone
@@ -207,3 +212,23 @@ kafkaRebalance:
     - NetworkOutboundCapacityGoal
     - CpuCapacityGoal
     - ReplicaCapacityGoal
+
+# Gateway configuration
+gateway:
+  enabled: false
+  dnsSuffix: "strimzi.gateway.api.test"
+  certificate:
+    enabled: true
+    issuerRef:
+      name: cluster-ca-issuer
+      kind: ClusterIssuer
+    subject:
+      organizations:
+      - my-org
+    privateKey:
+      algorithm: ECDSA
+      encoding: PKCS8
+      size: 256
+    usages:
+    - server auth
+    - client auth

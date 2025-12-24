@@ -37,9 +37,11 @@ Before using this project, ensure you have the following installed:
 
 ### Installation Commands
 
+Install podman desktop
+
 ```bash
 # macOS with Homebrew
-brew install kind terraform helm kubectl
+brew install terraform helm kubectl
 
 # Verify installations
 kind version

@@ -1,0 +1,13 @@
+gateway:
+  enabled: true
+  certificate:
+    enabled: true
+    issuerRef:
+      name: cluster-ca-issuer
+      kind: ClusterIssuer
+  parentRefs:
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    name: cluster-gateway
+    namespace: envoy-gateway-system
+    sectionName: kafka-listener

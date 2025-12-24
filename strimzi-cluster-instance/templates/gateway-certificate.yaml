@@ -1,0 +1,29 @@
+{{- if and .Values.gateway.enabled .Values.gateway.certificate.enabled }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "strimzi-cluster-instance.fullname" . }}-gateway-cert
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "strimzi-cluster-instance.labels" . | nindent 4 }}
+spec:
+  secretName: {{ include "strimzi-cluster-instance.fullname" . }}-gateway-cert
+  {{- with .Values.gateway.certificate.subject }}
+  subject:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.gateway.certificate.privateKey }}
+  privateKey:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.gateway.certificate.usages }}
+  usages:
+    {{- toYaml . | nindent 2 }}
+  {{- end }}
+  dnsNames:
+  - "*.{{ .Values.gateway.dnsSuffix }}"
+  {{- with .Values.gateway.certificate.issuerRef }}
+  issuerRef:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

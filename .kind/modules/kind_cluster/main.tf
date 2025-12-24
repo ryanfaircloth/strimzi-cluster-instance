@@ -19,8 +19,9 @@ resource "null_resource" "registry" {
 }
 
 resource "kind_cluster" "default" {
-  name       = var.name
-  depends_on = [null_resource.registry]
+  name           = var.name
+  depends_on     = [null_resource.registry]
+  wait_for_ready = true
   kind_config {
     kind        = "Cluster"
     api_version = "kind.x-k8s.io/v1alpha4"
@@ -33,6 +34,12 @@ EOT
       role = "control-plane"
       labels = {
         "topology.kubernetes.io/zone" = "az-1"
+        "ingress-ready"          = "true"
+      }
+      extra_port_mappings {
+        container_port = 30992
+        host_port      = 9092
+        protocol = "TCP"
       }
     }
     node {

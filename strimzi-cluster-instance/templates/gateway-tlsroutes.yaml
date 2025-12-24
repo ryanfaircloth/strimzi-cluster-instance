@@ -1,0 +1,53 @@
+{{- if .Values.gateway.enabled }}
+{{- $brokerReplicas := 0 }}
+{{- range .Values.nodePools }}
+  {{- if has "broker" .roles }}
+    {{- $brokerReplicas = .replicas }}
+  {{- end }}
+{{- end }}
+{{- range $i := until (int $brokerReplicas) }}
+{{- $brokerID := $i }}
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: TLSRoute
+metadata:
+  name: {{ include "strimzi-cluster-instance.fullname" $ }}-broker-{{ $brokerID }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "strimzi-cluster-instance.labels" $ | nindent 4 }}
+spec:
+  hostnames:
+  - broker-{{ $brokerID }}.{{ $.Values.gateway.dnsSuffix }}
+  {{- with $.Values.gateway.parentRefs }}
+  parentRefs:
+    {{- toYaml . | nindent 2 }}
+  {{- end }}
+  rules:
+  - backendRefs:
+    - group: ""
+      kind: Service
+      name: {{ include "strimzi-cluster-instance.fullname" $ }}-{{ include "strimzi-cluster-instance.fullname" $ }}-broker-tlsext-{{ $brokerID }}
+      port: {{ $.Values.kafka.listeners.tlsext.port }}
+{{- end }}
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: TLSRoute
+metadata:
+  name: {{ include "strimzi-cluster-instance.fullname" . }}-bootstrap
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "strimzi-cluster-instance.labels" . | nindent 4 }}
+spec:
+  hostnames:
+  - bootstrap.{{ .Values.gateway.dnsSuffix }}
+  {{- with .Values.gateway.parentRefs }}
+  parentRefs:
+    {{- toYaml . | nindent 2 }}
+  {{- end }}
+  rules:
+  - backendRefs:
+    - group: ""
+      kind: Service
+      name: {{ include "strimzi-cluster-instance.fullname" . }}-kafka-tlsext-bootstrap
+      port: {{ .Values.kafka.listeners.tlsext.port }}
+{{- end }}

@@ -17,6 +17,21 @@ resource "kubectl_manifest" "localregistry_helmrepository" {
   depends_on         = [helm_release.flux_instance]
 }
 
+# ConfigMap for strimzi cluster values
+resource "kubernetes_config_map_v1" "strimzi_cluster_values" {
+  metadata {
+    name      = "flux-strimzi-cluster-values"
+    namespace = kubernetes_namespace_v1.kafka.metadata[0].name
+  }
+
+  data = {
+    "values.yaml" = file("${path.module}/helm-values/flux-strimzi-cluster-values.yaml")
+  }
+
+  depends_on = [kubernetes_namespace_v1.kafka]
+}
+
+
 
 # HelmRelease for strimzi-cluster-instance from localregistry
 resource "kubectl_manifest" "strimzi_cluster_instance_helmrelease" {
@@ -24,7 +39,7 @@ resource "kubectl_manifest" "strimzi_cluster_instance_helmrelease" {
     strimzi_cluster_instance_version = var.strimzi_cluster_instance_version
   })
   override_namespace = kubernetes_namespace_v1.kafka.metadata[0].name
-  depends_on         = [kubectl_manifest.localregistry_helmrepository]
+  depends_on         = [kubectl_manifest.localregistry_helmrepository, kubernetes_config_map_v1.strimzi_cluster_values]
   wait_for {
     field {
       key   = "status.conditions.[0].status"

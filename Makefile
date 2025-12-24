@@ -41,12 +41,20 @@ up-dev:
 	@if [ ! -f .kind/terraform.tfstate ]; then \
 		pushd .kind && TF_VAR_strimzi_cluster_instance_version=$(VERSION) terraform init && popd; \
 	fi
-	pushd .kind && TF_VAR_strimzi_cluster_instance_version=$(VERSION) terraform apply -target=module.kind_cluster -auto-approve && popd
+## pushd .kind && TF_VAR_strimzi_cluster_instance_version=$(VERSION) terraform apply -target=module.kind_cluster -auto-approve && popd
 	pushd .kind && TF_VAR_strimzi_cluster_instance_version=$(VERSION) terraform apply -auto-approve || TF_VAR_strimzi_cluster_instance_version=$(VERSION) terraform apply -auto-approve && popd
 
-## Destroy all Terraform-managed resources
+## Destroy all resources using direct cleanup commands
 down:
-	pushd .kind && terraform destroy -auto-approve && popd
+	@echo "Deleting KIND cluster..."
+	-kind delete cluster --name strimzi-cluster-instance
+	@echo "Stopping and removing kind-registry container..."
+	-podman stop kind-registry
+	-podman rm kind-registry
+	@echo "Cleaning up terraform state and config files..."
+	-rm -f .kind/terraform.tfstate .kind/terraform.tfstate.backup
+	-rm -f .kind/strimzi-cluster-instance-config
+	@echo "Cleanup complete!"
 
 ## Remove only the version file
 clean-version:

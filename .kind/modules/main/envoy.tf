@@ -24,6 +24,17 @@ resource "kubectl_manifest" "envoyproxy_helmrelease" {
       value = "True"
     }
   }
-
 }
 
+
+resource "kubectl_manifest" "envoyproxy_gateway" {
+  yaml_body          = file("${path.module}/flux2-manifests/gateway-helmrelease.yaml")
+  override_namespace = kubernetes_namespace_v1.envoy_gateway_system.metadata[0].name
+  depends_on         = [kubectl_manifest.envoyproxy_helmrelease]
+  wait_for {
+    field {
+      key   = "status.conditions.[0].status"
+      value = "True"
+    }
+  }
+}
