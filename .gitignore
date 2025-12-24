@@ -55,3 +55,7 @@ terraform.rc
 .kind/.terraform.lock.hcl
 *.tgz
 .kind/strimzi-cluster-instance-config
+kafka_*
+.test/*
+.DS_Store
+.values.yaml
