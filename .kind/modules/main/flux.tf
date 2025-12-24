@@ -17,7 +17,7 @@ resource "helm_release" "flux_operator" {
   namespace  = kubernetes_namespace.flux_system.metadata[0].name
   repository = "oci://ghcr.io/controlplaneio-fluxcd/charts"
   chart      = "flux-operator"
-  version    = "0.22.0"
+  version    = "0.38.1"
   values = [
     file("${path.module}/helm-values/flux-operator-values.yaml")
   ]
