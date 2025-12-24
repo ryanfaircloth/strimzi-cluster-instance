@@ -25,7 +25,9 @@ resource "kubernetes_config_map_v1" "strimzi_cluster_values" {
   }
 
   data = {
-    "values.yaml" = file("${path.module}/helm-values/flux-strimzi-cluster-values.yaml")
+    "yaml.values" = templatefile("${path.module}/helm-values/flux-strimzi-cluster-values.yaml", {
+      gateway_dns_suffix = var.gateway_dns_suffix
+    })
   }
 
   depends_on = [kubernetes_namespace_v1.kafka]

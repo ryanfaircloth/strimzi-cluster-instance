@@ -338,7 +338,7 @@ kafka:
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Resources
-
+- [Strimzi blog that inspired it all](https://strimzi.io/blog/2024/08/16/accessing-kafka-with-gateway-api/)
 - [Strimzi Documentation](https://strimzi.io/docs/)
 - [Apache Kafka Documentation](https://kafka.apache.org/documentation/)
 - [KIND Documentation](https://kind.sigs.k8s.io/)

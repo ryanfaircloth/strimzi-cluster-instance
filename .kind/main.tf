@@ -12,4 +12,5 @@ module "main" {
   client_certificate               = module.kind_cluster.client_certificate
   client_key                       = module.kind_cluster.client_key
   strimzi_cluster_instance_version = var.strimzi_cluster_instance_version
+  gateway_dns_suffix               = var.gateway_dns_suffix
 }

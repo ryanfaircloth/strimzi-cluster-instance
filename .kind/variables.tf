@@ -3,3 +3,9 @@ variable "strimzi_cluster_instance_version" {
   type        = string
   default     = "*"
 }
+
+variable "gateway_dns_suffix" {
+  description = "DNS suffix for gateway routes"
+  type        = string
+  default     = "strimzi.gateway.api.test"
+}

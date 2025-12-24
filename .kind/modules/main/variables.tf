@@ -28,3 +28,9 @@ variable "flux_namespace" {
   type        = string
   default     = "flux-system"
 }
+
+variable "gateway_dns_suffix" {
+  description = "DNS suffix for gateway routes"
+  type        = string
+  default     = "strimzi.gateway.api.test"
+}

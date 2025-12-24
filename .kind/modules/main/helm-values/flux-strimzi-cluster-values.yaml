@@ -1,5 +1,6 @@
 gateway:
   enabled: true
+  dnsSuffix: "${gateway_dns_suffix}"
   certificate:
     enabled: true
     issuerRef:
