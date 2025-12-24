@@ -34,12 +34,12 @@ EOT
       role = "control-plane"
       labels = {
         "topology.kubernetes.io/zone" = "az-1"
-        "ingress-ready"          = "true"
+        "ingress-ready"               = "true"
       }
       extra_port_mappings {
-        container_port = 30992
-        host_port      = 9092
-        protocol = "TCP"
+        container_port = 30994
+        host_port      = 9094
+        protocol       = "TCP"
       }
     }
     node {

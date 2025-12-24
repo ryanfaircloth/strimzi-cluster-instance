@@ -17,4 +17,19 @@ spec:
     - name: cert-manager
       namespace: cert-manager
   interval: 5m
-  values: {}
+  values:
+    deployment:
+      replicas: 1
+      pod:
+        tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          effect: NoSchedule
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+              - matchExpressions:
+                - key: ingress-ready
+                  operator: In
+                  values:
+                  - "true"

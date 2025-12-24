@@ -232,3 +232,11 @@ gateway:
     usages:
     - server auth
     - client auth
+
+# Users configuration
+users:
+  enableAdminUser: false
+  adminUser:
+    name: admin
+    authentication:
+      type: scram-sha-512

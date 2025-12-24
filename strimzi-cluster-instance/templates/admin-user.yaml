@@ -1,0 +1,46 @@
+{{- if .Values.users.enableAdminUser }}
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: {{ .Values.users.adminUser.name | default "admin" }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "strimzi-cluster-instance.labels" . | nindent 4 }}
+    strimzi.io/cluster: {{ include "strimzi-cluster-instance.fullname" . }}
+spec:
+  authentication:
+    type: {{ .Values.users.adminUser.authentication.type | default "scram-sha-512" }}
+  authorization:
+    type: simple
+    acls:
+    # Admin access to all topics
+    - resource:
+        type: topic
+        name: "*"
+        patternType: literal
+      operations:
+        - All
+      host: "*"
+    # Admin access to all consumer groups
+    - resource:
+        type: group
+        name: "*"
+        patternType: literal
+      operations:
+        - All
+      host: "*"
+    # Admin access to cluster operations
+    - resource:
+        type: cluster
+      operations:
+        - All
+      host: "*"
+    # Admin access to all transactional IDs
+    - resource:
+        type: transactionalId
+        name: "*"
+        patternType: literal
+      operations:
+        - All
+      host: "*"
+{{- end }}

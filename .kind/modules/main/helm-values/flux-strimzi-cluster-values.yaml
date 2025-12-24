@@ -11,3 +11,5 @@ gateway:
     name: cluster-gateway
     namespace: envoy-gateway-system
     sectionName: kafka-listener
+users:
+  enableAdminUser: true    
