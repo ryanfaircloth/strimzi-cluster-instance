@@ -133,10 +133,10 @@ kafka:
     transaction.state.log.replication.factor: 3
   jmxOptions: {}
   listeners:
-    plain:
-      port: 9092
     tls:
       port: 9093
+      authentication:
+        type: scram-sha-512
     tlsext: # Enable TLS listener for external access by enabling gateway
       port: 9094
       type: cluster-ip

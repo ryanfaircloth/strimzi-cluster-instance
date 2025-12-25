@@ -25,14 +25,12 @@ spec:
       {{- toYaml . | nindent 6 }}
     {{- end }}
     listeners:
-      - name: plain
-        port: {{ .Values.kafka.listeners.plain.port }}
-        tls: false
-        type: internal
       - name: tls
         port: {{ .Values.kafka.listeners.tls.port }}
         tls: true
         type: internal
+        authentication:
+          type: {{ .Values.kafka.listeners.tls.authentication.type | default "scram-sha-512" }}
       {{- if .Values.gateway.enabled }}
       - name: tlsext
         port: {{ .Values.kafka.listeners.tlsext.port }}
