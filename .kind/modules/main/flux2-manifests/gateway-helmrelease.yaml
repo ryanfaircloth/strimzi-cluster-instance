@@ -23,6 +23,29 @@ spec:
   values:
     resources:
       -
+        apiVersion: cert-manager.io/v1
+        kind: Certificate
+        metadata:
+          name: cluster-gateway-cert
+          namespace: envoy-gateway-system
+        spec:
+          dnsNames:
+          - '*.apps.gateway.api.test'
+          issuerRef:
+            kind: ClusterIssuer
+            name: cluster-ca-issuer
+          privateKey:
+            algorithm: ECDSA
+            encoding: PKCS8
+            size: 256
+          secretName: cluster-gateway-cert
+          subject:
+            organizations:
+            - my-org
+          usages:
+          - server auth
+          - client auth
+      -
         apiVersion: gateway.envoyproxy.io/v1alpha1
         kind: EnvoyProxy
         metadata:
@@ -39,12 +62,18 @@ spec:
                   value:
                     spec:
                       ports:
-                      # Port 9092 on your laptop gets forwarded to NodePort 30992 on the KIND cluster.
+                      # Port 9094 for Kafka TLS traffic
                       - name: kafka-port
                         nodePort: 30994
                         port: 9094
                         protocol: TCP
-                        targetPort: 9094      
+                        targetPort: 9094
+                      # Port 9443 for HTTPS traffic
+                      - name: https-port
+                        nodePort: 30943
+                        port: 9443
+                        protocol: TCP
+                        targetPort: 9443      
       - 
         apiVersion: gateway.networking.k8s.io/v1
         kind: GatewayClass
@@ -57,7 +86,7 @@ spec:
             group: gateway.envoyproxy.io
             kind: EnvoyProxy
             name: cluster-gateway
-            namespace: envoy-gateway-system      
+            namespace: envoy-gateway-system
       -
         apiVersion: gateway.networking.k8s.io/v1
         kind: Gateway
@@ -74,6 +103,18 @@ spec:
             port: 9094
             tls:
               mode: Passthrough
+            allowedRoutes:
+              namespaces:
+                from: All
+          - name: https-listener
+            protocol: HTTPS
+            port: 9443
+            tls:
+              mode: Terminate
+              certificateRefs:
+              - kind: Secret
+                name: cluster-gateway-cert
+                namespace: envoy-gateway-system
             allowedRoutes:
               namespaces:
                 from: All

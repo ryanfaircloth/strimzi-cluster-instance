@@ -41,6 +41,11 @@ EOT
         host_port      = 9094
         protocol       = "TCP"
       }
+      extra_port_mappings {
+        container_port = 30943
+        host_port      = 9443
+        protocol       = "TCP"
+      }
     }
     node {
       role = "worker"
