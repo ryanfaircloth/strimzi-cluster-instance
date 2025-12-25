@@ -19,13 +19,37 @@ VERSION       := $(shell (v=0.0.1-$(shell date +%Y%m%d%H%M%S); echo $$v > $(VERS
 CHART_OUTPUT  := .out/$(CHART_NAME)-$(VERSION).tgz
 CHART_REPO    := oci://localhost:5050/dev/charts/
 
-.PHONY: dev build-dev push-dev up up-dev down clean-version clean
+.PHONY: dev build-dev push-dev up up-dev down clean-version clean hostctl
 
 ## Build and push the chart (development workflow)
 dev: build-dev push-dev
 
 ## Build, push, and apply the chart using Terraform (development workflow)
 up: build-dev up-dev push-dev
+	@echo ""
+	@echo "🎉 Cluster deployment complete!"
+	@echo ""
+	@echo "📋 Available Services:"
+	@echo "====================="
+	@echo ""
+	@echo "🔐 HTTPS Services (port 9443):"
+	@echo "  • TinyOlly Observability UI:"
+	@echo "    https://to.strimzi.gateway.api.test:9443/"
+	@echo ""
+	@echo "📡 Kafka Brokers (port 9094, TLS):"
+	@echo "  • broker-0.strimzi.gateway.api.test:9094"
+	@echo "  • broker-1.strimzi.gateway.api.test:9094"
+	@echo "  • broker-2.strimzi.gateway.api.test:9094"
+	@echo "  • bootstrap.strimzi.gateway.api.test:9094 (bootstrap)"
+	@echo ""
+	@echo "🔑 Authentication:"
+	@echo "  • Admin user: admin-user"
+	@echo "  • Get password: kubectl get secret admin-user -n kafka -o jsonpath='{.data.password}' | base64 -d"
+	@echo ""
+	@echo "📊 Monitoring:"
+	@echo "  • TinyOlly collects Kafka telemetry via OTLP"
+	@echo "  • OpAMP server manages collector configuration"
+	@echo ""
 
 ## Package the Helm chart into the .out directory
 build-dev:
@@ -63,3 +87,7 @@ clean-version:
 ## Remove build artifacts and version file
 clean:
 	rm -rf .out $(VERSION_FILE)
+
+## Add hostnames to local hosts using hostctl (requires sudo)
+hostctl:
+	sudo hostctl add domains kafka to.strimzi.gateway.api.test broker-0.strimzi.gateway.api.test broker-1.strimzi.gateway.api.test broker-2.strimzi.gateway.api.test bootstrap.strimzi.gateway.api.test
