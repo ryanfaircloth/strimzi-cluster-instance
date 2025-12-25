@@ -15,7 +15,30 @@ spec:
         namespace: flux-system
   values:
     resources:
-      # 1. Create ConfigMaps first
+      # 1. Create Certificate for otel-collector TLS
+      - apiVersion: cert-manager.io/v1
+        kind: Certificate
+        metadata:
+          name: otel-collector-cert
+          namespace: tinyolly
+        spec:
+          dnsNames:
+          - otel-collector
+          - otel-collector.tinyolly
+          - otel-collector.tinyolly.svc.cluster.local
+          issuerRef:
+            kind: ClusterIssuer
+            name: cluster-ca-issuer
+          privateKey:
+            algorithm: ECDSA
+            encoding: PKCS8
+            size: 256
+          secretName: otel-collector-cert
+          usages:
+          - server auth
+          - client auth
+
+      # 2. Create ConfigMaps
       - apiVersion: v1
         kind: ConfigMap
         metadata:
@@ -29,13 +52,24 @@ spec:
             # connector, and exports to both debug and OTLP endpoints.
 
             receivers:
-              otlp:
+              otlp/plain:
                 protocols:
                   grpc:
                     endpoint: 0.0.0.0:4317
                   http:
                     endpoint: 0.0.0.0:4318
-
+              otlp/tls:
+                protocols:
+                  grpc:
+                    endpoint: 0.0.0.0:4417
+                    tls:
+                      cert_file: /certs/tls.crt
+                      key_file: /certs/tls.key                    
+                  http:
+                    endpoint: 0.0.0.0:4418
+                    tls:
+                      cert_file: /certs/tls.crt
+                      key_file: /certs/tls.key                    
             extensions:
               opamp:
                 server:
@@ -73,17 +107,17 @@ spec:
               extensions: [opamp]
               pipelines:
                 traces:
-                  receivers: [otlp]
+                  receivers: [otlp/plain, otlp/tls]
                   processors: [batch]
                   exporters: [debug, otlp, spanmetrics]
                 
                 metrics:
-                  receivers: [otlp, spanmetrics]
+                  receivers: [otlp/plain, otlp/tls, spanmetrics]
                   processors: [batch]
                   exporters: [debug, otlp]
                 
                 logs:
-                  receivers: [otlp]
+                  receivers: [otlp/plain, otlp/tls]
                   processors: [batch]
                   exporters: [debug, otlp]
 
@@ -148,12 +182,24 @@ spec:
           prometheus-remote-write.yaml: |
             # Prometheus Remote Write Template
             receivers:
-              otlp:
+              otlp:otlp/plain:
                 protocols:
                   grpc:
                     endpoint: 0.0.0.0:4317
                   http:
                     endpoint: 0.0.0.0:4318
+              otlp/tls:
+                protocols:
+                  grpc:
+                    endpoint: 0.0.0.0:4417
+                    tls:
+                      cert_file: /certs/tls.crt
+                      key_file: /certs/tls.key                    
+                  http:
+                    endpoint: 0.0.0.0:4418
+                    tls:
+                      cert_file: /certs/tls.crt
+                      key_file: /certs/tls.key    
             
             exporters:
               prometheus:
@@ -162,7 +208,7 @@ spec:
             service:
               pipelines:
                 metrics:
-                  receivers: [otlp]
+                  receivers: [otlp/plain, otlp/tls]
                   exporters: [prometheus]
 
       # 2. Redis deployment
@@ -433,9 +479,13 @@ spec:
                 imagePullPolicy: Always
                 ports:
                 - containerPort: 4317
-                  name: otlp-grpc
+                  name: otlp-grpc-notls
                 - containerPort: 4318
-                  name: otlp-http
+                  name: otlp-http-notls
+                - containerPort: 4417
+                  name: otlp-grpc-tls
+                - containerPort: 4418
+                  name: otlp-http-tls
                 - containerPort: 19291
                   name: prom-rw
                 resources:
@@ -454,6 +504,9 @@ spec:
                   subPath: otel-collector-config.yaml
                 - name: supervisor-data
                   mountPath: /var/lib/otelcol/supervisor
+                - name: otel-collector-cert-vol
+                  mountPath: /certs
+                  readOnly: true
               volumes:
               - name: supervisor-config-vol
                 configMap:
@@ -463,6 +516,9 @@ spec:
                   name: otel-collector-config
               - name: supervisor-data
                 emptyDir: {}
+              - name: otel-collector-cert-vol
+                secret:
+                  secretName: otel-collector-cert
 
       - apiVersion: v1
         kind: Service
@@ -473,14 +529,22 @@ spec:
           selector:
             app: otel-collector
           ports:
-            - name: grpc
+            - name: grpc-notls
               protocol: TCP
               port: 4317
               targetPort: 4317
-            - name: http
+            - name: http-notls
               protocol: TCP
               port: 4318
               targetPort: 4318
+            - name: grpc-tls
+              protocol: TCP
+              port: 4417
+              targetPort: 4417
+            - name: http-tls
+              protocol: TCP
+              port: 4418
+              targetPort: 4418
             - name: prom-rw
               protocol: TCP
               port: 19291

@@ -56,7 +56,6 @@ spec:
           provider:
             type: Kubernetes
             kubernetes:
-
               envoyService:
                 type: NodePort
                 patch:
@@ -75,6 +74,32 @@ spec:
                         port: 9443
                         protocol: TCP
                         targetPort: 9443      
+          telemetry:
+            metrics:
+              sinks:
+                - type: OpenTelemetry
+                  openTelemetry:
+                    host: otel-collector.tinyolly.svc.cluster.local
+                    port: 4317          
+            tracing:
+              # sample 100% of requests
+              samplingRate: 100
+              provider:
+                host: otel-collector.tinyolly.svc.cluster.local
+                port: 4317
+                type: OpenTelemetry
+
+            accessLog:
+              settings:
+                - format:
+                    type: Text
+                    text: |
+                      [%START_TIME%] "%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%" %RESPONSE_CODE% %RESPONSE_FLAGS% %BYTES_RECEIVED% %BYTES_SENT% %DURATION% "%REQ(X-FORWARDED-FOR)%" "%REQ(USER-AGENT)%" "%REQ(X-REQUEST-ID)%" "%REQ(:AUTHORITY)%" "%UPSTREAM_HOST%"
+                  sinks:
+                    - type: OpenTelemetry
+                      openTelemetry:
+                        host: otel-collector.tinyolly.svc.cluster.local
+                        port: 4317                        
       - 
         apiVersion: gateway.networking.k8s.io/v1
         kind: GatewayClass
