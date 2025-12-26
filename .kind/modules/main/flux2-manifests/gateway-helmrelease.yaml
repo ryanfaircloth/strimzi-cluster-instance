@@ -101,6 +101,29 @@ spec:
                         host: agent-collector.opentelemetry-operator-system.svc.cluster.local
                         port: 4317                        
       - 
+        apiVersion: gateway.envoyproxy.io/v1alpha1
+        kind: EnvoyProxy
+        metadata:
+          name: management-gateway
+          namespace: envoy-gateway-system
+        spec:
+          provider:
+            type: Kubernetes
+            kubernetes:
+              envoyService:
+                type: NodePort
+                patch:
+                  value:
+                    spec:
+                      ports:
+                      # Port 49443 for management HTTPS traffic (no telemetry)
+                      - name: mgmt-https-port
+                        nodePort: 30949
+                        port: 49443
+                        protocol: TCP
+                        targetPort: 49443
+          # No telemetry configuration for management gateway
+      - 
         apiVersion: gateway.networking.k8s.io/v1
         kind: GatewayClass
         metadata:
@@ -113,6 +136,40 @@ spec:
             kind: EnvoyProxy
             name: cluster-gateway
             namespace: envoy-gateway-system
+      -
+        apiVersion: gateway.networking.k8s.io/v1
+        kind: GatewayClass
+        metadata:
+          name: management-gateway-class
+          namespace: envoy-gateway-system
+        spec:
+          controllerName: gateway.envoyproxy.io/gatewayclass-controller
+          parametersRef:
+            group: gateway.envoyproxy.io
+            kind: EnvoyProxy
+            name: management-gateway
+            namespace: envoy-gateway-system
+      -
+        apiVersion: gateway.networking.k8s.io/v1
+        kind: Gateway
+        metadata:
+          name: management-gateway
+          namespace: envoy-gateway-system
+        spec:
+          gatewayClassName: management-gateway-class
+          listeners:
+          - name: mgmt-https-listener
+            protocol: HTTPS
+            port: 49443
+            tls:
+              mode: Terminate
+              certificateRefs:
+              - kind: Secret
+                name: cluster-gateway-cert
+                namespace: envoy-gateway-system
+            allowedRoutes:
+              namespaces:
+                from: All
       -
         apiVersion: gateway.networking.k8s.io/v1
         kind: Gateway
