@@ -20,30 +20,6 @@ spec:
         namespace: flux-system
   values:
     resources:
-      # 1. Create Certificate for otel-collector TLS
-      - apiVersion: cert-manager.io/v1
-        kind: Certificate
-        metadata:
-          name: otel-collector-cert
-          namespace: tinyolly
-        spec:
-          dnsNames:
-          - otel-collector
-          - otel-collector.tinyolly
-          - otel-collector.tinyolly.svc.cluster.local
-          issuerRef:
-            kind: ClusterIssuer
-            name: cluster-ca-issuer
-          privateKey:
-            algorithm: ECDSA
-            encoding: PKCS8
-            size: 256
-          secretName: otel-collector-cert
-          usages:
-          - server auth
-          - client auth
-
-      # 2. Create ConfigMaps
       - apiVersion: v1
         kind: ConfigMap
         metadata:
@@ -63,18 +39,6 @@ spec:
                     endpoint: 0.0.0.0:4317
                   http:
                     endpoint: 0.0.0.0:4318
-              otlp/tls:
-                protocols:
-                  grpc:
-                    endpoint: 0.0.0.0:4417
-                    tls:
-                      cert_file: /certs/tls.crt
-                      key_file: /certs/tls.key                    
-                  http:
-                    endpoint: 0.0.0.0:4418
-                    tls:
-                      cert_file: /certs/tls.crt
-                      key_file: /certs/tls.key                    
             extensions:
               opamp:
                 server:
@@ -112,17 +76,17 @@ spec:
               extensions: [opamp]
               pipelines:
                 traces:
-                  receivers: [otlp/plain, otlp/tls]
+                  receivers: [otlp/plain]
                   processors: [batch]
                   exporters: [debug, otlp, spanmetrics]
                 
                 metrics:
-                  receivers: [otlp/plain, otlp/tls, spanmetrics]
+                  receivers: [otlp/plain, spanmetrics]
                   processors: [batch]
                   exporters: [debug, otlp]
                 
                 logs:
-                  receivers: [otlp/plain, otlp/tls]
+                  receivers: [otlp/plain]
                   processors: [batch]
                   exporters: [debug, otlp]
 
@@ -187,24 +151,12 @@ spec:
           prometheus-remote-write.yaml: |
             # Prometheus Remote Write Template
             receivers:
-              otlp:otlp/plain:
+              otlp:otlp:
                 protocols:
                   grpc:
                     endpoint: 0.0.0.0:4317
                   http:
                     endpoint: 0.0.0.0:4318
-              otlp/tls:
-                protocols:
-                  grpc:
-                    endpoint: 0.0.0.0:4417
-                    tls:
-                      cert_file: /certs/tls.crt
-                      key_file: /certs/tls.key                    
-                  http:
-                    endpoint: 0.0.0.0:4418
-                    tls:
-                      cert_file: /certs/tls.crt
-                      key_file: /certs/tls.key    
             
             exporters:
               prometheus:
@@ -213,7 +165,7 @@ spec:
             service:
               pipelines:
                 metrics:
-                  receivers: [otlp/plain, otlp/tls]
+                  receivers: [otlp]
                   exporters: [prometheus]
 
       # 2. Redis deployment
@@ -324,11 +276,11 @@ spec:
                 - name: OTEL_SERVICE_NAME
                   value: "tinyolly-otlp-receiver"
                 - name: OTEL_EXPORTER_OTLP_ENDPOINT
-                  value: "http://otel-collector:4318"
+                  value: "http://agent-collector.opentelemetry-operator-system.svc.cluster.local:4318"
                 - name: OTEL_EXPORTER_OTLP_PROTOCOL
                   value: "http/protobuf"
                 - name: OTEL_EXPORTER_OTLP_LOGS_ENDPOINT
-                  value: "http://otel-collector:4318/v1/logs"
+                  value: "http://agent-collector.opentelemetry-operator-system.svc.cluster.local:4318/v1/logs"
                 - name: OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED
                   value: "true"
                 resources:
@@ -404,11 +356,11 @@ spec:
                 - name: OTEL_SERVICE_NAME
                   value: "tinyolly-opamp-server"
                 - name: OTEL_EXPORTER_OTLP_ENDPOINT
-                  value: "http://otel-collector:4318"
+                  value: "http://agent-collector.opentelemetry-operator-system.svc.cluster.local:4318"
                 - name: OTEL_EXPORTER_OTLP_PROTOCOL
                   value: "http/protobuf"
                 - name: OTEL_EXPORTER_OTLP_LOGS_ENDPOINT
-                  value: "http://otel-collector:4318/v1/logs"
+                  value: "http://agent-collector.opentelemetry-operator-system.svc.cluster.local:4318/v1/logs"
                 volumeMounts:
                 - name: otel-collector-config-vol
                   mountPath: /etc/otel-collector-config.yaml
@@ -589,15 +541,15 @@ spec:
                 - name: OTEL_SERVICE_NAME
                   value: "tinyolly-ui"
                 - name: OTEL_EXPORTER_OTLP_ENDPOINT
-                  value: "http://otel-collector:4318"
+                  value: "http://agent-collector.opentelemetry-operator-system.svc.cluster.local:4318"
                 - name: OTEL_EXPORTER_OTLP_PROTOCOL
                   value: "http/protobuf"
                 - name: OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
-                  value: "http://otel-collector:4318/v1/traces"
+                  value: "http://agent-collector.opentelemetry-operator-system.svc.cluster.local:4318/v1/traces"
                 - name: OTEL_EXPORTER_OTLP_METRICS_ENDPOINT
-                  value: "http://otel-collector:4318/v1/metrics"
+                  value: "http://agent-collector.opentelemetry-operator-system.svc.cluster.local:4318/v1/metrics"
                 - name: OTEL_EXPORTER_OTLP_LOGS_ENDPOINT
-                  value: "http://otel-collector:4318/v1/logs"
+                  value: "http://agent-collector.opentelemetry-operator-system.svc.cluster.local:4318/v1/logs"
                 - name: OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED
                   value: "true"
                 - name: OPAMP_SERVER_URL

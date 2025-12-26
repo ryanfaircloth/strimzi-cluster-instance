@@ -79,13 +79,13 @@ spec:
               sinks:
                 - type: OpenTelemetry
                   openTelemetry:
-                    host: otel-collector.tinyolly.svc.cluster.local
+                    host: agent-collector.opentelemetry-operator-system.svc.cluster.local
                     port: 4317          
             tracing:
               # sample 100% of requests
               samplingRate: 100
               provider:
-                host: otel-collector.tinyolly.svc.cluster.local
+                host: agent-collector.opentelemetry-operator-system.svc.cluster.local
                 port: 4317
                 type: OpenTelemetry
 
@@ -98,7 +98,7 @@ spec:
                   sinks:
                     - type: OpenTelemetry
                       openTelemetry:
-                        host: otel-collector.tinyolly.svc.cluster.local
+                        host: agent-collector.opentelemetry-operator-system.svc.cluster.local
                         port: 4317                        
       - 
         apiVersion: gateway.networking.k8s.io/v1
