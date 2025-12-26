@@ -27,6 +27,12 @@ spec:
         spec:
           mode: daemonset
           serviceAccount: logs-collector
+          env:
+            - name: KUBE_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.nodeName
           volumes:
             - name: varlogpods
               hostPath:
@@ -72,6 +78,123 @@ spec:
                   # Parse container logs using the standard container operator
                   - type: container
                     id: container-parser
+                  # Parse JSON structured logs
+                  - type: json_parser
+                    id: json-parser
+                    parse_from: body
+                    parse_to: attributes
+                    on_error: send
+                  # Parse log level to OpenTelemetry severity
+                  - type: severity_parser
+                    id: severity-parser
+                    parse_from: attributes.level
+                    on_error: send
+                  # Parse log_level to OpenTelemetry severity if level wasn't found
+                  - type: severity_parser
+                    id: severity-parser-alt
+                    parse_from: attributes.log_level
+                    on_error: send
+                  # Remove original level fields after parsing
+                  - type: remove
+                    id: remove-level
+                    field: attributes.level
+                    if: attributes.level != nil
+                  - type: remove
+                    id: remove-log-level
+                    field: attributes.log_level
+                    if: attributes.log_level != nil
+                  # Map legacy field names to semantic conventions
+                  - type: move
+                    id: map-legacy-app-to-service-name
+                    from: attributes.legacy.app
+                    to: attributes.service.name
+                    if: 'attributes.legacy.app != nil and attributes.service.name == nil'
+                  - type: move
+                    id: map-legacy-version-to-service-version
+                    from: attributes.legacy.version
+                    to: attributes.service.version
+                    if: 'attributes.legacy.version != nil and attributes.service.version == nil'
+                  # Clean up legacy fields after mapping
+                  - type: remove
+                    id: remove-legacy-app
+                    field: attributes.legacy.app
+                    if: attributes.legacy.app != nil
+                  - type: remove
+                    id: remove-legacy-version
+                    field: attributes.legacy.version
+                    if: attributes.legacy.version != nil
+                  # Parse W3C Trace Context with regex (lowercase)
+                  - type: regex_parser
+                    id: parse-w3c-trace-context-lower
+                    if: attributes.traceparent != nil
+                    parse_from: attributes.traceparent
+                    regex: '^(?P<version>[0-9a-f]{2})-(?P<trace_id>[0-9a-f]{32})-(?P<span_id>[0-9a-f]{16})-(?P<trace_flags>[0-9a-f]{2})$'
+                    parse_to: attributes.w3c_trace
+                  # Parse W3C Trace Context with regex (uppercase)  
+                  - type: regex_parser
+                    id: parse-w3c-trace-context-upper
+                    if: attributes.Traceparent != nil
+                    parse_from: attributes.Traceparent
+                    regex: '^(?P<version>[0-9a-f]{2})-(?P<trace_id>[0-9a-f]{32})-(?P<span_id>[0-9a-f]{16})-(?P<trace_flags>[0-9a-f]{2})$'
+                    parse_to: attributes.w3c_trace
+                  # Move parsed trace_id and span_id to resource for proper trace correlation
+                  - type: move
+                    id: set-trace-id-from-w3c
+                    from: attributes.w3c_trace.trace_id
+                    to: resource.trace_id
+                    if: attributes.w3c_trace.trace_id != nil
+                  - type: move
+                    id: set-span-id-from-w3c
+                    from: attributes.w3c_trace.span_id
+                    to: resource.span_id
+                    if: attributes.w3c_trace.span_id != nil
+                  # Clean up temporary w3c_trace object
+                  - type: remove
+                    id: remove-w3c-trace-temp
+                    field: attributes.w3c_trace
+                    if: attributes.w3c_trace != nil
+                  # Set top-level trace_id and span_id from resource for proper correlation
+                  - type: trace_parser
+                    id: set-trace-correlation
+                    if: resource.trace_id != nil
+                    trace_id:
+                      parse_from: resource.trace_id
+                    span_id:
+                      parse_from: resource.span_id
+                  # Remove original traceparent field after parsing
+                  - type: remove
+                    id: remove-traceparent
+                    field: attributes.traceparent
+                    if: attributes.traceparent != nil
+                  - type: remove
+                    id: remove-Traceparent
+                    field: attributes.Traceparent
+                    if: attributes.Traceparent != nil
+                  # Remove trace fields from resource since they should only be at top level
+                  - type: remove
+                    id: remove-resource-trace-id
+                    field: resource.trace_id
+                    if: resource.trace_id != nil
+                  - type: remove
+                    id: remove-resource-span-id
+                    field: resource.span_id
+                    if: resource.span_id != nil
+                  - type: remove
+                    id: remove-version
+                    field: attributes.version
+                    if: 'attributes.version != nil and attributes.version matches "^[0-9a-f]{2}$"'
+                  # Extract main message from msg field if present
+                  - type: move
+                    id: extract-msg-field
+                    from: attributes.msg
+                    to: body
+                    if: attributes.msg != nil
+                  # Extract main message from message field if present
+                  - type: move
+                    id: extract-message-field
+                    from: attributes.message
+                    to: body
+                    if: attributes.message != nil
                 storage: file_storage
 
             processors:
@@ -79,18 +202,11 @@ spec:
                 timeout: 1s
                 send_batch_size: 1024
               
-              resource:
-                attributes:
-                  - key: service.name
-                    value: kubernetes-logs
-                    action: upsert
-                  - key: deployment.environment
-                    value: dev
-                    action: upsert
-              
               k8sattributes:
                 auth_type: "serviceAccount"
                 passthrough: false
+                filter:
+                  node_from_env_var: KUBE_NODE_NAME
                 extract:
                   metadata:
                     - k8s.pod.name
@@ -100,19 +216,48 @@ spec:
                     - k8s.node.name
                     - k8s.pod.start_time
                   labels:
-                    - tag_name: app
+                    - tag_name: service.name
+                      key: app.kubernetes.io/name
+                      from: pod
+                    - tag_name: service.version
+                      key: app.kubernetes.io/version
+                      from: pod
+                    - tag_name: service.component
+                      key: app.kubernetes.io/component
+                      from: pod
+                    - tag_name: service.instance.id
+                      key: app.kubernetes.io/instance
+                      from: pod
+                    # Legacy label mappings
+                    - tag_name: legacy.app
                       key: app
                       from: pod
-                    - tag_name: version
+                    - tag_name: legacy.version
                       key: version
+                      from: pod
+                  annotations:
+                    - tag_name: deployment_config
+                      key: deployment.kubernetes.io/config-hash
                       from: pod
                 pod_association:
                   - sources:
                       - from: resource_attribute
-                        name: k8s.pod.name
+                        name: k8s.pod.uid
                   - sources:
                       - from: resource_attribute
+                        name: k8s.pod.name
+                      - from: resource_attribute
                         name: k8s.namespace.name
+
+              resource:
+                attributes:
+                  # Set fallback service name for logs without k8s labels
+                  - key: fallback.service.name
+                    value: kubernetes-logs
+                    action: upsert
+                  - key: deployment.environment
+                    value: dev
+                    action: upsert
 
             extensions:
               file_storage:
