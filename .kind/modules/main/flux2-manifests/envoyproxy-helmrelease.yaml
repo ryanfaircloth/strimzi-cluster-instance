@@ -8,15 +8,21 @@ spec:
   chart:
     spec:
       chart: gateway-helm
-      version: "1.6.1"
+      version: "0.0.0-latest" #"1.6.1"
       sourceRef:
         kind: HelmRepository
         name: envoyproxy-charts
         namespace: flux-system
   dependsOn:
+    - name: envoyproxy-crds
+      namespace: envoy-gateway-system
     - name: cert-manager
       namespace: cert-manager
   interval: 5m
+  install:
+    skipCRDs: true
+  upgrade:
+    skipCRDs: true
   values:
     deployment:
       replicas: 1
