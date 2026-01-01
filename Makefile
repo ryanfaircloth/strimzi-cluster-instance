@@ -14,8 +14,15 @@
 CHART_NAME    := strimzi-cluster-instance
 CHART_PATH    := ./strimzi-cluster-instance
 VERSION_FILE  := .version
-# Auto-generate version if not present
-VERSION       := $(shell (v=0.0.1-$(shell date +%Y%m%d%H%M%S); echo $$v > $(VERSION_FILE); echo $$v))
+# Use existing version if available, otherwise generate new one
+VERSION       := $(shell \
+	if [ -f $(VERSION_FILE) ]; then \
+		cat $(VERSION_FILE); \
+	else \
+		v=0.0.1-$(shell date +%Y%m%d%H%M%S); \
+		echo $$v > $(VERSION_FILE); \
+		echo $$v; \
+	fi)
 CHART_OUTPUT  := .out/$(CHART_NAME)-$(VERSION).tgz
 CHART_REPO    := oci://localhost:5050/dev/charts/
 
@@ -38,6 +45,8 @@ up: build-dev up-dev push-dev
 	@echo "🔧 Management HTTPS Services (port 49443) - No OpenTelemetry:"
 	@echo "  • TinyOlly Observability UI:"
 	@echo "    https://to.strimzi.gateway.api.test:49443/"
+	@echo "  • Kafka UI:"
+	@echo "    https://kafka-ui.strimzi.gateway.api.test:49443/"
 	@echo ""
 	@echo "📡 Kafka Brokers (port 9094, TLS):"
 	@echo "  • broker-0.strimzi.gateway.api.test:9094"
