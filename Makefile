@@ -58,6 +58,7 @@ up: build-dev up-dev push-dev
 build-dev:
 	mkdir -p .out
 	helm package $(CHART_PATH) --version $(VERSION) --destination .out
+	touch $(VERSION_FILE)
 
 ## Push the packaged chart to the local OCI registry
 push-dev:
