@@ -273,6 +273,13 @@ spec:
                   value: "6579"
                 - name: PORT
                   value: "4343"
+                # Disable OpenTelemetry auto-instrumentation for OTLP receiver
+                - name: OTEL_SDK_DISABLED
+                  value: "true"
+                - name: OTEL_PYTHON_DISABLED
+                  value: "true"
+                - name: OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED
+                  value: "false"
                 # - name: OTEL_SERVICE_NAME
                 #   value: "tinyolly-otlp-receiver"
                 # - name: OTEL_EXPORTER_OTLP_ENDPOINT
@@ -538,6 +545,13 @@ spec:
                   value: "6579"
                 - name: DEPLOYMENT_ENV
                   value: "kubernetes"
+                # Disable OpenTelemetry auto-instrumentation for TinyOlly UI
+                - name: OTEL_SDK_DISABLED
+                  value: "true"
+                - name: OTEL_PYTHON_DISABLED
+                  value: "true" 
+                - name: OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED
+                  value: "false"
                 # - name: OTEL_SERVICE_NAME
                 #   value: "tinyolly-ui"
                 # - name: OTEL_EXPORTER_OTLP_ENDPOINT
