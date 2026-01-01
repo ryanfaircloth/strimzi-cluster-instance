@@ -34,30 +34,27 @@ spec:
           authorization:
             type: simple
             acls:
-              # Read access to all topics
+              # Full access to all topics
               - resource:
                   type: topic
                   name: "*"
                   patternType: literal
                 operations:
-                  - Read
-                  - Describe
+                  - All
                 host: "*"
-              # Read access to all consumer groups
+              # Full access to all consumer groups
               - resource:
                   type: group
                   name: "*"
                   patternType: literal
                 operations:
-                  - Read
-                  - Describe
+                  - All
                 host: "*"
-              # Read access to cluster operations
+              # Full access to cluster operations
               - resource:
                   type: cluster
                 operations:
-                  - Describe
-                  - DescribeConfigs
+                  - All
                 host: "*"
       
       # KafkaUserAccess for Kafka UI - creates connection secret
