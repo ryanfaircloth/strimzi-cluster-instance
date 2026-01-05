@@ -59,6 +59,14 @@ spec:
               mountPath: /otel-logs-storage
           config: |
             receivers:
+              # OTLP receiver for application telemetry
+              otlp:
+                protocols:
+                  grpc:
+                    endpoint: 0.0.0.0:4317
+                  http:
+                    endpoint: 0.0.0.0:4318
+              
               # File log collection from Kubernetes pods
               filelog:
                 include:
@@ -197,14 +205,6 @@ spec:
                     to: body
                     if: attributes.message != nil
                 storage: file_storage
-
-              # OTLP receivers for traces, metrics, and logs
-              otlp:
-                protocols:
-                  grpc:
-                    endpoint: 0.0.0.0:4317
-                  http:
-                    endpoint: 0.0.0.0:4318
 
             processors:
               batch:
@@ -532,24 +532,20 @@ spec:
         spec:
           # Collector endpoint where telemetry will be exported
           exporter:
-            endpoint: http://agent.opentelemetry-operator-system.svc.cluster.local:4317
+            endpoint: http://agent-collector.opentelemetry-operator-system.svc.cluster.local:4318
+          # Propagators configuration
+          propagators:
+            - tracecontext
+            - baggage
+          # Resource attributes applied to all telemetry
+          resource:
+            attributes:
+              deployment.environment: "development"
           # Python auto-instrumentation configuration
           python:
-            image: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-python:0.44b0
+            # image: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-python:0.44b0
             env:
-              - name: OTEL_EXPORTER_OTLP_ENDPOINT
-                value: http://agent.opentelemetry-operator-system.svc.cluster.local:4317
-              - name: OTEL_EXPORTER_OTLP_PROTOCOL
-                value: grpc
-              - name: OTEL_TRACES_EXPORTER
-                value: "otlp"
-              - name: OTEL_METRICS_EXPORTER
-                value: "otlp"
-              - name: OTEL_LOGS_EXPORTER
-                value: "otlp"                
-              - name: OTEL_EXPORTER_OTLP_INSECURE
-                value: "true"
-              # Python specific instrumentation libraries
+              # Python-specific instrumentation settings (no spec equivalent)
               - name: OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED
                 value: "true"
               - name: OTEL_PYTHON_LOG_CORRELATION
@@ -558,8 +554,8 @@ spec:
                 value: "content-.*,x-.*"
               - name: OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_RESPONSE  
                 value: "content-.*,x-.*"
-          # Resource attributes that will be applied to all telemetry
-          resource:
-            attributes:
-              deployment.environment: "development"
-              service.namespace: "default"
+          # # Resource attributes that will be applied to all telemetry
+          # resource:
+          #   attributes:
+          #     deployment.environment: "development"
+          #     service.namespace: "default"
