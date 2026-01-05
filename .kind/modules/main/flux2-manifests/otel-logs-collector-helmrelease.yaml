@@ -522,3 +522,44 @@ spec:
         - kind: ServiceAccount
           name: gateway
           namespace: opentelemetry-operator-system
+
+      # OpenTelemetry Instrumentation CR for Python applications (opt-in)
+      - apiVersion: opentelemetry.io/v1alpha1
+        kind: Instrumentation
+        metadata:
+          name: python-instrumentation
+          namespace: opentelemetry-operator-system
+        spec:
+          # Collector endpoint where telemetry will be exported
+          exporter:
+            endpoint: http://agent.opentelemetry-operator-system.svc.cluster.local:4317
+          # Python auto-instrumentation configuration
+          python:
+            image: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-python:0.44b0
+            env:
+              - name: OTEL_EXPORTER_OTLP_ENDPOINT
+                value: http://agent.opentelemetry-operator-system.svc.cluster.local:4317
+              - name: OTEL_EXPORTER_OTLP_PROTOCOL
+                value: grpc
+              - name: OTEL_TRACES_EXPORTER
+                value: "otlp"
+              - name: OTEL_METRICS_EXPORTER
+                value: "otlp"
+              - name: OTEL_LOGS_EXPORTER
+                value: "otlp"                
+              - name: OTEL_EXPORTER_OTLP_INSECURE
+                value: "true"
+              # Python specific instrumentation libraries
+              - name: OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED
+                value: "true"
+              - name: OTEL_PYTHON_LOG_CORRELATION
+                value: "true"                
+              - name: OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST
+                value: "content-.*,x-.*"
+              - name: OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_RESPONSE  
+                value: "content-.*,x-.*"
+          # Resource attributes that will be applied to all telemetry
+          resource:
+            attributes:
+              deployment.environment: "development"
+              service.namespace: "default"
