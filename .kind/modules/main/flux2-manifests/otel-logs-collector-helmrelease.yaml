@@ -19,7 +19,7 @@ spec:
   interval: 5m
   values:
     resources:
-      - apiVersion: opentelemetry.io/v1alpha1
+      - apiVersion: opentelemetry.io/v1beta1
         kind: OpenTelemetryCollector
         metadata:
           name: agent
@@ -57,7 +57,7 @@ spec:
               readOnly: true
             - name: otel-logs-storage
               mountPath: /otel-logs-storage
-          config: |
+          config:
             receivers:
               # OTLP receiver for application telemetry
               otlp:
@@ -326,7 +326,7 @@ spec:
                   exporters: [loadbalancing/gateway]
 
       # Central Gateway Collector for distributed trace processing
-      - apiVersion: opentelemetry.io/v1alpha1
+      - apiVersion: opentelemetry.io/v1beta1
         kind: OpenTelemetryCollector
         metadata:
           name: gateway
@@ -335,7 +335,7 @@ spec:
           mode: deployment
           serviceAccount: gateway
           replicas: 1  # HA deployment
-          config: |
+          config:
             receivers:
               otlp:
                 protocols:
