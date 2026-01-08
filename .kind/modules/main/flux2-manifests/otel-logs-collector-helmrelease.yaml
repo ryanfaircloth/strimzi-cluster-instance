@@ -1,4 +1,4 @@
-apiVersion: helm.toolkit.fluxcd.io/v2beta2
+apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
   name: otel-logs-collector
@@ -548,6 +548,10 @@ spec:
               # Python-specific instrumentation settings (no spec equivalent)
               - name: OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED
                 value: "true"
+              - name: OTEL_PYTHON_LOGGING_INJECTION_ENABLED
+                value: "true"
+              - name: OTEL_PYTHON_LOG_LEVEL
+                value: "INFO"
               - name: OTEL_PYTHON_LOG_CORRELATION
                 value: "true"                
               - name: OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST
