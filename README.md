@@ -113,6 +113,51 @@ make up-dev
 make clean
 ```
 
+## Release Process
+
+This project uses automated releases to publish Helm charts to GitHub Container Registry (GHCR).
+
+### Automated Releases (Recommended)
+
+1. **Create a GitHub Release**: Go to the [Releases page](https://github.com/ryanfaircloth/strimzi-cluster-instance/releases) and create a new release
+2. **Tag Format**: Use semantic versioning (e.g., `v1.0.0`, `v1.2.3`)
+3. **Automated Publishing**: GitHub Actions will automatically build and publish the Helm chart to GHCR
+
+The chart will be available at:
+```
+oci://ghcr.io/ryanfaircloth/strimzi-cluster-instance
+```
+
+### Manual Release (Advanced)
+
+For manual releases, you can use the Makefile:
+
+```bash
+# Build and push a specific version to GHCR
+make release RELEASE_VERSION=1.0.0
+
+# Or individually:
+make build-release RELEASE_VERSION=1.0.0
+make push-release RELEASE_VERSION=1.0.0
+```
+
+**Note**: Manual releases require GHCR authentication (`helm registry login ghcr.io`)
+
+### Using Published Charts
+
+Install the published chart from GHCR:
+
+```bash
+# Install latest version
+helm install my-kafka oci://ghcr.io/ryanfaircloth/strimzi-cluster-instance
+
+# Install specific version
+helm install my-kafka oci://ghcr.io/ryanfaircloth/strimzi-cluster-instance --version 1.0.0
+
+# Pull chart for local inspection
+helm pull oci://ghcr.io/ryanfaircloth/strimzi-cluster-instance --version 1.0.0
+```
+
 ### Customizing the Kafka Cluster
 
 #### 1. Edit Values File

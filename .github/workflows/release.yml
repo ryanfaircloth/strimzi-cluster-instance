@@ -1,0 +1,65 @@
+name: Release Helm Chart
+
+on:
+  release:
+    types: [published]
+
+env:
+  REGISTRY: ghcr.io
+  CHART_NAME: strimzi-cluster-instance
+
+jobs:
+  release-chart:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: '3.14.0'
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          # Remove 'v' prefix if present (e.g., v1.0.0 -> 1.0.0)
+          VERSION=${GITHUB_REF_NAME#v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Publishing version: $VERSION"
+
+      - name: Package Helm chart
+        run: |
+          mkdir -p .out
+          helm package ./strimzi-cluster-instance \
+            --version ${{ steps.version.outputs.version }} \
+            --destination .out
+
+      - name: Push Helm chart to GHCR
+        run: |
+          CHART_PACKAGE=".out/${{ env.CHART_NAME }}-${{ steps.version.outputs.version }}.tgz"
+          CHART_REPO="oci://${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.CHART_NAME }}"
+          
+          echo "Pushing $CHART_PACKAGE to $CHART_REPO"
+          helm push "$CHART_PACKAGE" "$CHART_REPO"
+
+      - name: Verify chart publication
+        run: |
+          echo "✅ Chart published successfully!"
+          echo "📦 Chart: ${{ env.CHART_NAME }}:${{ steps.version.outputs.version }}"
+          echo "🏠 Registry: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.CHART_NAME }}"
+          echo ""
+          echo "🔧 To use this chart:"
+          echo "helm install my-strimzi oci://${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.CHART_NAME }} --version ${{ steps.version.outputs.version }}"

@@ -26,10 +26,13 @@ VERSION       := $(shell \
 CHART_OUTPUT  := .out/$(CHART_NAME)-$(VERSION).tgz
 CHART_REPO    := oci://localhost:5050/dev/charts/
 
-.PHONY: dev build-dev push-dev up up-dev down clean-version clean hostctl
+.PHONY: dev build-dev push-dev up up-dev down clean-version clean hostctl release build-release push-release
 
 ## Build and push the chart (development workflow)
 dev: build-dev push-dev
+
+## Build and push the chart for release (production workflow)
+release: build-release push-release
 
 ## Build, push, and apply the chart using Terraform (development workflow)
 up: build-dev up-dev push-dev
@@ -104,3 +107,25 @@ clean:
 ## Add hostnames to local hosts using hostctl (requires sudo)
 hostctl:
 	sudo hostctl add domains kafka to.strimzi.gateway.api.test broker-0.strimzi.gateway.api.test broker-1.strimzi.gateway.api.test broker-2.strimzi.gateway.api.test bootstrap.strimzi.gateway.api.test
+
+## Package the Helm chart for production release (requires RELEASE_VERSION)
+build-release:
+	@if [ -z "$(RELEASE_VERSION)" ]; then \
+		echo "❌ Error: RELEASE_VERSION is required for production builds"; \
+		echo "Usage: make build-release RELEASE_VERSION=1.0.0"; \
+		exit 1; \
+	fi
+	mkdir -p .out
+	helm package $(CHART_PATH) --version $(RELEASE_VERSION) --destination .out
+	@echo "✅ Built chart: .out/$(CHART_NAME)-$(RELEASE_VERSION).tgz"
+
+## Push the chart to GitHub Container Registry (requires RELEASE_VERSION)
+push-release:
+	@if [ -z "$(RELEASE_VERSION)" ]; then \
+		echo "❌ Error: RELEASE_VERSION is required for production releases"; \
+		echo "Usage: make push-release RELEASE_VERSION=1.0.0"; \
+		exit 1; \
+	fi
+	@echo "🚀 Pushing $(CHART_NAME):$(RELEASE_VERSION) to GHCR..."
+	helm push .out/$(CHART_NAME)-$(RELEASE_VERSION).tgz oci://ghcr.io/ryanfaircloth/$(CHART_NAME)
+	@echo "✅ Chart published to oci://ghcr.io/ryanfaircloth/$(CHART_NAME):$(RELEASE_VERSION)"
