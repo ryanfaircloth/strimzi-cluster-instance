@@ -169,7 +169,7 @@ kafka:
     template:
       pod:
         metadata:
-          annotations:
+          labels:
             app.kubernetes.io/component: cruise-control
         nodeSelector:
           kubernetes.io/arch: arm64
@@ -193,7 +193,7 @@ kafka:
     template:
       pod:
         metadata:
-          annotations:
+          labels:
             app.kubernetes.io/component: entity-operator
         nodeSelector:
           kubernetes.io/arch: arm64
