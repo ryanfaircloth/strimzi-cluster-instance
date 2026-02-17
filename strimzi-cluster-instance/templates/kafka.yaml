@@ -88,7 +88,7 @@ spec:
         metadata:
           {{- toYaml . | nindent 10 }}
         {{- end }}
-        {{- if or .affinity $.Values.defaultArchitecture $.Values.kafka.cruiseControl.additionalNodeSelectorTerms }}
+        {{- if or .affinity $.Values.defaultArchitecture $.Values.kafka.cruiseControl.additionalNodeMatchExpressions }}
         affinity:
           {{- if .affinity }}
           {{- /* User provided custom affinity - use as-is */ -}}
@@ -109,7 +109,7 @@ spec:
                       values:
                         - {{ $.Values.defaultArchitecture }}
                     {{- end }}
-                    {{- with $.Values.kafka.cruiseControl.additionalNodeSelectorTerms }}
+                    {{- with $.Values.kafka.cruiseControl.additionalNodeMatchExpressions }}
                     {{- toYaml . | nindent 20 }}
                     {{- end }}
           {{- end }}
@@ -141,7 +141,7 @@ spec:
         metadata:
           {{- toYaml . | nindent 10 }}
         {{- end }}
-        {{- if or .affinity $.Values.defaultArchitecture $.Values.kafka.entityOperator.additionalNodeSelectorTerms }}
+        {{- if or .affinity $.Values.defaultArchitecture $.Values.kafka.entityOperator.additionalNodeMatchExpressions }}
         affinity:
           {{- if .affinity }}
           {{- /* User provided custom affinity - use as-is */ -}}
@@ -162,7 +162,7 @@ spec:
                       values:
                         - {{ $.Values.defaultArchitecture }}
                     {{- end }}
-                    {{- with $.Values.kafka.entityOperator.additionalNodeSelectorTerms }}
+                    {{- with $.Values.kafka.entityOperator.additionalNodeMatchExpressions }}
                     {{- toYaml . | nindent 20 }}
                     {{- end }}
           {{- end }}

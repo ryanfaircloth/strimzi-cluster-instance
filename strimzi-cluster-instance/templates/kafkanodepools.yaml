@@ -61,7 +61,7 @@ spec:
                     values:
                       - {{ $.Values.defaultArchitecture }}
                   {{- end }}
-                  {{- with .additionalNodeSelectorTerms }}
+                  {{- with .additionalNodeMatchExpressions }}
                   {{- toYaml . | nindent 18 }}
                   {{- end }}
         podAntiAffinity:

@@ -22,12 +22,12 @@ nodePools:
       - broker
     replicas: 3
     additionalAnnotations:
-    strimzi.io/next-node-ids: "[0-499]"
-    # Additional node selector terms to add to the default node affinity
+      strimzi.io/next-node-ids: "[0-499]"
+    # Additional match expressions to add to the default node affinity
     # This allows adding constraints without managing the full affinity config
-    additionalNodeSelectorTerms: []
+    additionalNodeMatchExpressions: []
     # Example:
-    # additionalNodeSelectorTerms:
+    # additionalNodeMatchExpressions:
     #   - key: node.kubernetes.io/instance-type
     #     operator: In
     #     values:
@@ -79,9 +79,9 @@ nodePools:
       - controller
     replicas: 3
     additionalAnnotations:
-        strimzi.io/next-node-ids: "[500-600]"
-    # Additional node selector terms to add to the default node affinity
-    additionalNodeSelectorTerms: []
+      strimzi.io/next-node-ids: "[500-600]"
+    # Additional match expressions to add to the default node affinity
+    additionalNodeMatchExpressions: []
     template:
       pod:
         metadata:
@@ -174,8 +174,8 @@ kafka:
       inboundNetwork: 15728640KiB/s
       outboundNetwork: 15728640KiB/s
     config: {}
-    # Additional node selector terms to add to the default node affinity for Cruise Control
-    additionalNodeSelectorTerms: []
+    # Additional match expressions to add to the default node affinity for Cruise Control
+    additionalNodeMatchExpressions: []
     template:
       pod:
         metadata:
@@ -197,8 +197,8 @@ kafka:
       #   memory: "2Gi"
       #   cpu: "1"
   entityOperator:
-    # Additional node selector terms to add to the default node affinity for Entity Operator
-    additionalNodeSelectorTerms: []
+    # Additional match expressions to add to the default node affinity for Entity Operator
+    additionalNodeMatchExpressions: []
     template:
       pod:
         metadata:
