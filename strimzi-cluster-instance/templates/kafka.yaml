@@ -84,19 +84,19 @@ spec:
       pod:
         {{- with .metadata }}
         metadata:
-          {{- toYaml . | nindent 6 }}
+          {{- toYaml . | nindent 10 }}
         {{- end }}
         {{- with .affinity }}
         affinity:
-          {{- toYaml . | nindent 8 }}
+          {{- toYaml . | nindent 10 }}
         {{- end }}
         {{- with .tolerations }}
         tolerations:
-          {{- toYaml . | nindent 8 }}
+          {{- toYaml . | nindent 10 }}
         {{- end }}
         {{- with .topologySpreadConstraints }}
         topologySpreadConstraints:
-          {{- toYaml . | nindent 8 }}
+          {{- toYaml . | nindent 10 }}
         {{- end }}
         {{- if .priorityClassName }}
         priorityClassName: {{ .priorityClassName }}
@@ -106,30 +106,28 @@ spec:
         {{- end }}
         {{- with .volumes }}
         volumes:
-          {{- toYaml . | nindent 8 }}
+          {{- toYaml . | nindent 10 }}
         {{- end }}
     {{- end }}
   entityOperator:
-    resources:
-      {{- toYaml .Values.kafka.entityOperator.resources | nindent 6 }}
     {{- with .Values.kafka.entityOperator.template.pod }}
     template:
       pod:
         {{- with .metadata }}
         metadata:
-          {{- toYaml . | nindent 6 }}
+          {{- toYaml . | nindent 10 }}
         {{- end }}
         {{- with .affinity }}
         affinity:
-          {{- toYaml . | nindent 8 }}
+          {{- toYaml . | nindent 10 }}
         {{- end }}
         {{- with .tolerations }}
         tolerations:
-          {{- toYaml . | nindent 8 }}
+          {{- toYaml . | nindent 10 }}
         {{- end }}
         {{- with .topologySpreadConstraints }}
         topologySpreadConstraints:
-          {{- toYaml . | nindent 8 }}
+          {{- toYaml . | nindent 10 }}
         {{- end }}
         {{- if .priorityClassName }}
         priorityClassName: {{ .priorityClassName }}
@@ -139,7 +137,7 @@ spec:
         {{- end }}
         {{- with .volumes }}
         volumes:
-          {{- toYaml . | nindent 8 }}
+          {{- toYaml . | nindent 10 }}
         {{- end }}
       {{- end }}
     topicOperator:
