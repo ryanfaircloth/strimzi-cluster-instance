@@ -84,7 +84,7 @@ spec:
       pod:
         {{- with .metadata }}
         metadata:
-          {{- toYaml . | nindent 8 }}
+          {{- toYaml . | nindent 6 }}
         {{- end }}
         {{- with .affinity }}
         affinity:
