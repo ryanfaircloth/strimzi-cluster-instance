@@ -86,6 +86,10 @@ spec:
         metadata:
           {{- toYaml . | nindent 10 }}
         {{- end }}
+        {{- with .nodeSelector }}
+        nodeSelector:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
         {{- with .affinity }}
         affinity:
           {{- toYaml . | nindent 10 }}
@@ -115,6 +119,10 @@ spec:
       pod:
         {{- with .metadata }}
         metadata:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .nodeSelector }}
+        nodeSelector:
           {{- toYaml . | nindent 10 }}
         {{- end }}
         {{- with .affinity }}

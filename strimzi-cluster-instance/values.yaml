@@ -19,6 +19,9 @@ nodePools:
         metadata:
           labels:
             app.kubernetes.io/component: broker
+        nodeSelector:
+          kubernetes.io/arch: arm64
+          kubernetes.io/os: linux
         affinity:
           nodeAffinity: {}
           podAffinity: {}
@@ -65,6 +68,9 @@ nodePools:
         metadata:
           labels:
             app.kubernetes.io/component: controller
+        nodeSelector:
+          kubernetes.io/arch: arm64
+          kubernetes.io/os: linux
         affinity:
           nodeAffinity: {}
           podAffinity: {}
@@ -156,6 +162,9 @@ kafka:
         metadata:
           annotations:
             app.kubernetes.io/component: cruise-control
+        nodeSelector:
+          kubernetes.io/arch: arm64
+          kubernetes.io/os: linux
         affinity: {}
         tolerations: []
         topologySpreadConstraints: []
@@ -175,6 +184,9 @@ kafka:
         metadata:
           annotations:
             app.kubernetes.io/component: entity-operator
+        nodeSelector:
+          kubernetes.io/arch: arm64
+          kubernetes.io/os: linux
         affinity: {}
         tolerations: []
         topologySpreadConstraints: []

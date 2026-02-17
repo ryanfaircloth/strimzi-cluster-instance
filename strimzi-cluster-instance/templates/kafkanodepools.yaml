@@ -22,6 +22,10 @@ spec:
       metadata:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- with .template.pod.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- $hasAffinity := false }}
       {{- if .template.pod.affinity }}
         {{- if or .template.pod.affinity.nodeAffinity .template.pod.affinity.podAffinity .template.pod.affinity.podAntiAffinity }}
