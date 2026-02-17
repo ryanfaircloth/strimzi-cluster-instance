@@ -11,6 +11,10 @@ nameOverride: ""
 # Use "kubernetes.io/hostname" to spread across individual nodes
 defaultTopologySpreadKey: "topology.kubernetes.io/zone"
 
+# Default architecture for node affinity
+# Set to "arm64" or "amd64" (also known as "x86_64")
+defaultArchitecture: "arm64"
+
 # Node pools configuration
 nodePools:
   - name: broker
@@ -19,16 +23,22 @@ nodePools:
     replicas: 3
     additionalAnnotations:
     strimzi.io/next-node-ids: "[0-499]"
+    # Additional node selector terms to add to the default node affinity
+    # This allows adding constraints without managing the full affinity config
+    additionalNodeSelectorTerms: []
+    # Example:
+    # additionalNodeSelectorTerms:
+    #   - key: node.kubernetes.io/instance-type
+    #     operator: In
+    #     values:
+    #       - m5.large
+    #       - m5.xlarge
     template:
       pod:
         metadata:
           labels:
             app.kubernetes.io/component: broker
-        nodeSelector:
-          kubernetes.io/arch: arm64
-          kubernetes.io/os: linux
         affinity:
-          nodeAffinity: {}
           podAffinity: {}
           podAntiAffinity: {}
         tolerations: []
@@ -70,16 +80,14 @@ nodePools:
     replicas: 3
     additionalAnnotations:
         strimzi.io/next-node-ids: "[500-600]"
+    # Additional node selector terms to add to the default node affinity
+    additionalNodeSelectorTerms: []
     template:
       pod:
         metadata:
           labels:
             app.kubernetes.io/component: controller
-        nodeSelector:
-          kubernetes.io/arch: arm64
-          kubernetes.io/os: linux
         affinity:
-          nodeAffinity: {}
           podAffinity: {}
           podAntiAffinity: {}
         tolerations: []
@@ -166,14 +174,13 @@ kafka:
       inboundNetwork: 15728640KiB/s
       outboundNetwork: 15728640KiB/s
     config: {}
+    # Additional node selector terms to add to the default node affinity for Cruise Control
+    additionalNodeSelectorTerms: []
     template:
       pod:
         metadata:
           labels:
             app.kubernetes.io/component: cruise-control
-        nodeSelector:
-          kubernetes.io/arch: arm64
-          kubernetes.io/os: linux
         affinity: {}
         tolerations: []
         topologySpreadConstraints: []
@@ -190,14 +197,13 @@ kafka:
       #   memory: "2Gi"
       #   cpu: "1"
   entityOperator:
+    # Additional node selector terms to add to the default node affinity for Entity Operator
+    additionalNodeSelectorTerms: []
     template:
       pod:
         metadata:
           labels:
             app.kubernetes.io/component: entity-operator
-        nodeSelector:
-          kubernetes.io/arch: arm64
-          kubernetes.io/os: linux
         affinity: {}
         tolerations: []
         topologySpreadConstraints: []

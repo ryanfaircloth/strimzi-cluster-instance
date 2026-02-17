@@ -88,13 +88,31 @@ spec:
         metadata:
           {{- toYaml . | nindent 10 }}
         {{- end }}
-        {{- with .nodeSelector }}
-        nodeSelector:
-          {{- toYaml . | nindent 10 }}
-        {{- end }}
-        {{- with .affinity }}
+        {{- if or .affinity $.Values.defaultArchitecture $.Values.kafka.cruiseControl.additionalNodeSelectorTerms }}
         affinity:
-          {{- toYaml . | nindent 10 }}
+          {{- if .affinity }}
+          {{- /* User provided custom affinity - use as-is */ -}}
+          {{- toYaml .affinity | nindent 10 }}
+          {{- else }}
+          {{- /* Build default affinity with OS, arch, and additional terms */ -}}
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/os
+                      operator: In
+                      values:
+                        - linux
+                    {{- if $.Values.defaultArchitecture }}
+                    - key: kubernetes.io/arch
+                      operator: In
+                      values:
+                        - {{ $.Values.defaultArchitecture }}
+                    {{- end }}
+                    {{- with $.Values.kafka.cruiseControl.additionalNodeSelectorTerms }}
+                    {{- toYaml . | nindent 20 }}
+                    {{- end }}
+          {{- end }}
         {{- end }}
         {{- with .tolerations }}
         tolerations:
@@ -123,13 +141,31 @@ spec:
         metadata:
           {{- toYaml . | nindent 10 }}
         {{- end }}
-        {{- with .nodeSelector }}
-        nodeSelector:
-          {{- toYaml . | nindent 10 }}
-        {{- end }}
-        {{- with .affinity }}
+        {{- if or .affinity $.Values.defaultArchitecture $.Values.kafka.entityOperator.additionalNodeSelectorTerms }}
         affinity:
-          {{- toYaml . | nindent 10 }}
+          {{- if .affinity }}
+          {{- /* User provided custom affinity - use as-is */ -}}
+          {{- toYaml .affinity | nindent 10 }}
+          {{- else }}
+          {{- /* Build default affinity with OS, arch, and additional terms */ -}}
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/os
+                      operator: In
+                      values:
+                        - linux
+                    {{- if $.Values.defaultArchitecture }}
+                    - key: kubernetes.io/arch
+                      operator: In
+                      values:
+                        - {{ $.Values.defaultArchitecture }}
+                    {{- end }}
+                    {{- with $.Values.kafka.entityOperator.additionalNodeSelectorTerms }}
+                    {{- toYaml . | nindent 20 }}
+                    {{- end }}
+          {{- end }}
         {{- end }}
         {{- with .tolerations }}
         tolerations:

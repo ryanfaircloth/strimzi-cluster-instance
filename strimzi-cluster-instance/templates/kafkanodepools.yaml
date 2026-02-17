@@ -22,10 +22,6 @@ spec:
       metadata:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .template.pod.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
       {{- $hasAffinity := false }}
       {{- if .template.pod.affinity }}
         {{- if or .template.pod.affinity.nodeAffinity .template.pod.affinity.podAffinity .template.pod.affinity.podAntiAffinity }}
@@ -34,6 +30,7 @@ spec:
       {{- end }}
 
       {{- if $hasAffinity }}
+      {{- /* User provided custom affinity - use as-is */ -}}
       affinity:
         {{- with .template.pod.affinity.nodeAffinity }}
         nodeAffinity:
@@ -48,7 +45,25 @@ spec:
           {{- toYaml . | nindent 10 }}
         {{- end }}
       {{- else }}
+      {{- /* Build default affinity with OS, arch, and additional terms */ -}}
       affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/os
+                    operator: In
+                    values:
+                      - linux
+                  {{- if $.Values.defaultArchitecture }}
+                  - key: kubernetes.io/arch
+                    operator: In
+                    values:
+                      - {{ $.Values.defaultArchitecture }}
+                  {{- end }}
+                  {{- with .additionalNodeSelectorTerms }}
+                  {{- toYaml . | nindent 18 }}
+                  {{- end }}
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - labelSelector:
