@@ -54,6 +54,8 @@ nodePools:
   #         type: persistent-claim
   #         size: 64Gi
   #         deleteClaim: false
+    # Resource requests and limits for broker pods
+    # Set to null or {} to omit resource constraints (not recommended for production)
     resources:
       requests:
         memory: "2Gi"
@@ -101,6 +103,8 @@ nodePools:
   #         # Indicates that this directory will be used to store Kraft metadata log
   #         kraftMetadata: shared
   #         deleteClaim: false
+    # Resource requests and limits for controller pods
+    # Set to null or {} to omit resource constraints (not recommended for production)
     resources:
       requests:
         memory: "2Gi"
@@ -176,6 +180,8 @@ kafka:
         priorityClassName: ""
         tmpDirSizeLimit: ""
         volumes: []
+    # Resource requests and limits for CruiseControl
+    # Set to null or {} to omit resource constraints (not recommended for production)
     resources:
       requests:
         memory: "1Gi"
@@ -198,19 +204,34 @@ kafka:
         priorityClassName: ""
         tmpDirSizeLimit: ""
         volumes: []
-      # limits:
-      #   memory: "2Gi"
-      #   cpu: "1"
     topicOperator:
       watchAnyNamespace: false
       # Set watchedNamespace to the namespace where the operator should watch for resources
       # If empty, the operator will use the release namespace
       watchedNamespace: ""
+      # Resource requests and limits for topic operator
+      # Set to null or {} to omit resource constraints (not recommended for production)
+      resources:
+        requests:
+          memory: "512Mi"
+          cpu: "250m"
+        # limits:
+        #   memory: "1Gi"
+        #   cpu: "500m"
     userOperator:
       watchAnyNamespace: false
       # Set watchedNamespace to the namespace where the operator should watch for resources
       # If empty, the operator will use the release namespace
       watchedNamespace: ""
+      # Resource requests and limits for user operator
+      # Set to null or {} to omit resource constraints (not recommended for production)
+      resources:
+        requests:
+          memory: "512Mi"
+          cpu: "250m"
+        # limits:
+        #   memory: "1Gi"
+        #   cpu: "500m"
     version: null
 
 kafkaRebalance:
