@@ -22,8 +22,15 @@ spec:
       metadata:
         {{- toYaml . | nindent 6 }}
       {{- end }}
+      {{- $hasAffinity := false }}
+      {{- if .template.pod.affinity }}
+        {{- if or .template.pod.affinity.nodeAffinity .template.pod.affinity.podAffinity .template.pod.affinity.podAntiAffinity }}
+          {{- $hasAffinity = true }}
+        {{- end }}
+      {{- end }}
+
+      {{- if $hasAffinity }}
       affinity:
-        {{- if .template.pod.affinity }}        
         {{- with .template.pod.affinity.nodeAffinity }}
         nodeAffinity:
           {{- toYaml . | nindent 10 }}
@@ -32,10 +39,12 @@ spec:
         podAffinity:
           {{- toYaml . | nindent 10 }}
         {{- end }}
-        {{- if .template.pod.affinity.podAntiAffinity }}
+        {{- with .template.pod.affinity.podAntiAffinity }}
         podAntiAffinity:
-          {{- toYaml .template.pod.affinity.podAntiAffinity | nindent 10 }}
-        {{- else }}
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      {{- else }}
+      affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - labelSelector:
@@ -49,8 +58,7 @@ spec:
                     values:
                       - {{ include "strimzi-cluster-instance.fullname" $ }}-{{ $poolName }}
               topologyKey: "kubernetes.io/hostname"
-        {{- end }}
-        {{- end }}
+      {{- end }}
       {{- with .template.pod.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
