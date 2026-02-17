@@ -97,7 +97,7 @@ spec:
       {{- else }}
       topologySpreadConstraints:
         - maxSkew: 1
-          topologyKey: kubernetes.io/hostname
+          topologyKey: {{ $.Values.defaultTopologySpreadKey | default "topology.kubernetes.io/zone" }}
           whenUnsatisfiable: DoNotSchedule
           labelSelector:
             matchLabels:

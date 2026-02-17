@@ -6,6 +6,11 @@
 fullnameOverride: ""
 nameOverride: ""
 
+# Default topology spread key for pod distribution across nodes
+# Use "topology.kubernetes.io/zone" for production to spread across availability zones
+# Use "kubernetes.io/hostname" to spread across individual nodes
+defaultTopologySpreadKey: "topology.kubernetes.io/zone"
+
 # Node pools configuration
 nodePools:
   - name: broker
