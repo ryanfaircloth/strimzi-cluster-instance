@@ -30,7 +30,7 @@ spec:
       {{- end }}
 
       {{- if $hasAffinity }}
-      {{- /* User provided custom affinity - use as-is */ -}}
+      {{/* User provided custom affinity - use as-is */}}
       affinity:
         {{- with .template.pod.affinity.nodeAffinity }}
         nodeAffinity:
@@ -45,7 +45,7 @@ spec:
           {{- toYaml . | nindent 10 }}
         {{- end }}
       {{- else }}
-      {{- /* Build default affinity with OS, arch, and additional terms */ -}}
+      {{/* Build default affinity with OS, arch, and additional terms */}}
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:

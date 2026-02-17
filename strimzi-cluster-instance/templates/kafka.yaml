@@ -91,10 +91,10 @@ spec:
         {{- if or .affinity $.Values.defaultArchitecture $.Values.kafka.cruiseControl.additionalNodeMatchExpressions }}
         affinity:
           {{- if .affinity }}
-          {{- /* User provided custom affinity - use as-is */ -}}
+          {{/* User provided custom affinity - use as-is */}}
           {{- toYaml .affinity | nindent 10 }}
           {{- else }}
-          {{- /* Build default affinity with OS, arch, and additional terms */ -}}
+          {{/* Build default affinity with OS, arch, and additional terms */}}
           nodeAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
               nodeSelectorTerms:
@@ -144,10 +144,10 @@ spec:
         {{- if or .affinity $.Values.defaultArchitecture $.Values.kafka.entityOperator.additionalNodeMatchExpressions }}
         affinity:
           {{- if .affinity }}
-          {{- /* User provided custom affinity - use as-is */ -}}
+          {{/* User provided custom affinity - use as-is */}}
           {{- toYaml .affinity | nindent 10 }}
           {{- else }}
-          {{- /* Build default affinity with OS, arch, and additional terms */ -}}
+          {{/* Build default affinity with OS, arch, and additional terms */}}
           nodeAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
               nodeSelectorTerms:
