@@ -1,0 +1,29 @@
+{{- if .Values.kafka.podMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: {{ include "strimzi-cluster-instance.fullname" . }}
+  labels:
+    {{- include "strimzi-cluster-instance.labels" . | nindent 4 }}
+    {{- with .Values.kafka.podMonitor.additionalLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  namespaceSelector:
+    {{- toYaml .Values.kafka.podMonitor.namespaceSelector | nindent 4 }}
+  selector:
+    matchLabels:
+      strimzi.io/cluster: {{ include "strimzi-cluster-instance.fullname" . }}
+      strimzi.io/kind: Kafka
+  podMetricsEndpoints:
+    - port: {{ .Values.kafka.podMonitor.portName | default "tcp-prometheus" }}
+      interval: {{ .Values.kafka.podMonitor.interval | default "30s" }}
+      path: /metrics
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_label_strimzi_io_pool_name]
+          targetLabel: pool
+        - sourceLabels: [__meta_kubernetes_pod_label_strimzi_io_component_type]
+          targetLabel: component
+        - sourceLabels: [__meta_kubernetes_namespace]
+          targetLabel: kafka_namespace
+{{- end }}

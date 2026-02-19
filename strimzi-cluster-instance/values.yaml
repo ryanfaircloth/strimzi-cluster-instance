@@ -155,6 +155,48 @@ kafka:
     transaction.state.log.min.isr: 2
     transaction.state.log.replication.factor: 3
   jmxOptions: {}
+
+  # metricsConfig configures Prometheus metrics on broker and controller pods.
+  # Recommended: strimziMetricsReporter (available since Strimzi 0.47.0).
+  # Set to {} or omit to disable metrics.
+  #
+  # Example — Strimzi Metrics Reporter (preferred):
+  #   metricsConfig:
+  #     type: strimziMetricsReporter
+  #     values:
+  #       allowList:
+  #         - "kafka_server_brokertopicmetrics.*"
+  #         - "kafka_network_requestmetrics.*"
+  #         - "kafka_controller.*"
+  #
+  # Example — legacy JMX Prometheus Exporter:
+  #   metricsConfig:
+  #     type: jmxPrometheusExporter
+  #     valueFrom:
+  #       configMapKeyRef:
+  #         name: kafka-metrics
+  #         key: kafka-metrics-config.yml
+  metricsConfig: {}
+
+  # logging configures the log4j2 configuration for broker and controller pods.
+  # Set to {} or omit to use Strimzi defaults (plain-text log4j).
+  #
+  # Example — inline loggers:
+  #   logging:
+  #     type: inline
+  #     loggers:
+  #       log4j.logger.kafka: INFO
+  #       log4j.logger.org.apache.kafka: INFO
+  #
+  # Example — reference an external ConfigMap:
+  #   logging:
+  #     type: external
+  #     valueFrom:
+  #       configMapKeyRef:
+  #         name: my-log4j2-config
+  #         key: log4j2.properties
+  logging: {}
+
   listeners:
     tls:
       port: 9093
@@ -239,6 +281,20 @@ kafka:
         #   memory: "1Gi"
         #   cpu: "500m"
     version: null
+
+  podMonitor:
+    # Set enabled: true when metricsConfig.type is strimziMetricsReporter
+    enabled: false
+    # Prometheus Operator namespace selector — set to the namespace where your
+    # Prometheus/VictoriaMetrics operator is installed.
+    namespaceSelector:
+      any: true
+    # Scrape interval
+    interval: "30s"
+    # Port name exposed by strimziMetricsReporter (default: tcp-prometheus)
+    portName: "tcp-prometheus"
+    # Additional labels to apply to the PodMonitor resource
+    additionalLabels: {}
 
 kafkaRebalance:
   enabled: true

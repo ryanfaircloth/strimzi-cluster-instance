@@ -58,6 +58,14 @@ spec:
           createBootstrapService: true
       {{- end }}
 
+    {{- if and .Values.kafka.metricsConfig (not (empty .Values.kafka.metricsConfig)) }}
+    metricsConfig:
+      {{- toYaml .Values.kafka.metricsConfig | nindent 6 }}
+    {{- end }}
+    {{- if and .Values.kafka.logging (not (empty .Values.kafka.logging)) }}
+    logging:
+      {{- toYaml .Values.kafka.logging | nindent 6 }}
+    {{- end }}
     {{- if .Values.kafka.metadataVersion }}
     metadataVersion: {{ .Values.kafka.metadataVersion }}
     {{- end }}
