@@ -309,6 +309,109 @@ kafkaRebalance:
     - CpuCapacityGoal
     - ReplicaCapacityGoal
 
+# Periodic automated rebalance via a Kubernetes CronJob.
+#
+# When enabled, this creates:
+#   - A dedicated KafkaRebalance CR  (<release>-periodic)
+#   - A ServiceAccount / Role / RoleBinding for the CronJob
+#   - A CronJob that triggers a fresh Cruise Control proposal on a cron schedule
+#
+# Best-practice goal ordering (Strimzi / LinkedIn guidance):
+#   Hard capacity goals fire first, then distribution/optimisation goals.
+#   This ensures no broker is ever overloaded before partitions are spread evenly.
+#
+# Compatibility: autoApproval requires Strimzi >= 0.41.  For older operators set
+#   autoApproval: false — the CronJob will wait for ProposalReady and then apply
+#   the approve annotation automatically.
+kafkaRebalanceAuto:
+  enabled: false
+
+  # Cron schedule (UTC).  Default: daily at 02:00.
+  # Tune to a low-traffic window for your cluster.
+  schedule: "0 2 * * *"
+
+  additionalAnnotations: {}
+  additionalLabels: {}
+
+  # skipHardGoalCheck: false — hard capacity goals (network/disk/CPU/replica) are
+  # always enforced.  Setting true risks overloading brokers and is not recommended.
+  skipHardGoalCheck: false
+
+  # autoApproval: when true the Strimzi operator automatically approves the Cruise
+  # Control proposal and executes the rebalance (requires Strimzi >= 0.41).
+  # When false the CronJob waits for ProposalReady and applies the approve annotation.
+  autoApproval: true
+
+  # mode: full — rebalances all partition replicas across all brokers.
+  # Other values: add-brokers, remove-brokers (used during scaling events).
+  mode: full
+
+  # rebalanceDisk: set to true when using JBOD storage to also balance disk usage
+  # across volumes within each broker (intra-broker rebalance).
+  rebalanceDisk: false
+
+  # Goals in priority order — hard capacity goals first, then distribution goals.
+  # Hard goals (must not be violated):
+  #   NetworkInboundCapacityGoal, DiskCapacityGoal, RackAwareGoal,
+  #   NetworkOutboundCapacityGoal, CpuCapacityGoal, ReplicaCapacityGoal
+  # Soft / distribution goals (optimise spread across brokers):
+  #   ReplicaDistributionGoal, PotentialNwOutGoal, DiskUsageDistributionGoal,
+  #   NetworkInboundUsageDistributionGoal, NetworkOutboundUsageDistributionGoal,
+  #   TopicReplicaDistributionGoal, LeaderReplicaDistributionGoal,
+  #   LeaderBytesInDistributionGoal, PreferredLeaderElectionGoal
+  goals:
+    # --- Hard capacity goals (never violate) ---
+    - NetworkInboundCapacityGoal
+    - DiskCapacityGoal
+    - RackAwareGoal
+    - NetworkOutboundCapacityGoal
+    - CpuCapacityGoal
+    - ReplicaCapacityGoal
+    # --- Distribution / optimisation goals ---
+    - ReplicaDistributionGoal
+    - PotentialNwOutGoal
+    - DiskUsageDistributionGoal
+    - NetworkInboundUsageDistributionGoal
+    - NetworkOutboundUsageDistributionGoal
+    - TopicReplicaDistributionGoal
+    - LeaderReplicaDistributionGoal
+    - LeaderBytesInDistributionGoal
+    - PreferredLeaderElectionGoal
+
+  cronJob:
+    # kubectl-compatible image.  Pin the tag to match your cluster's Kubernetes version
+    # (e.g. "1.32" for Kubernetes 1.32.x) for API compatibility.
+    image:
+      repository: bitnami/kubectl
+      tag: "1.32"
+
+    # How long (seconds) to wait for a Cruise Control proposal before the job fails.
+    # Only relevant when autoApproval: false.
+    proposalWaitTimeout: "600"
+
+    # Job retry limit on transient failures (API server blips, etc.)
+    backoffLimit: 3
+
+    # Hard deadline for the entire job in seconds (proposal wait + rebalance execution).
+    # Default 4 h — increase for very large clusters.
+    activeDeadlineSeconds: 14400
+
+    successfulJobsHistoryLimit: 3
+    failedJobsHistoryLimit: 3
+
+    # Resource requests/limits for the kubectl trigger container.
+    # The container only runs shell + kubectl so very low resources are sufficient.
+    resources:
+      requests:
+        memory: "64Mi"
+        cpu: "50m"
+      limits:
+        memory: "128Mi"
+        cpu: "100m"
+
+    tolerations: []
+    nodeSelector: {}
+
 # Gateway configuration
 gateway:
   enabled: false

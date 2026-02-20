@@ -1,0 +1,165 @@
+{{- if .Values.kafkaRebalanceAuto.enabled }}
+{{- $fullname := include "strimzi-cluster-instance.fullname" . }}
+{{- $rebalanceName := printf "%s-periodic" $fullname }}
+{{- $namespace := .Release.Namespace }}
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaRebalance
+metadata:
+  name: {{ $rebalanceName }}
+  namespace: {{ $namespace }}
+  annotations:
+    # autoApproval: when true the Strimzi operator (>= 0.41) automatically approves the
+    # Cruise Control proposal and runs the rebalance without external intervention.
+    strimzi.io/rebalance-auto-approval: {{ .Values.kafkaRebalanceAuto.autoApproval | quote }}
+    {{- with .Values.kafkaRebalanceAuto.additionalAnnotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  labels:
+    {{- include "strimzi-cluster-instance.labels" $ | nindent 4 }}
+    strimzi.io/cluster: {{ $fullname }}
+    {{- with .Values.kafkaRebalanceAuto.additionalLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  # mode: full rebalances all partition replicas across all brokers.
+  mode: {{ .Values.kafkaRebalanceAuto.mode | default "full" }}
+  # skipHardGoalCheck: false ensures hard capacity goals are never violated.
+  skipHardGoalCheck: {{ .Values.kafkaRebalanceAuto.skipHardGoalCheck }}
+  # rebalanceDisk: true triggers an intra-broker JBOD disk rebalance in addition to the
+  # standard inter-broker rebalance.  Enable when using JBOD storage.
+  rebalanceDisk: {{ .Values.kafkaRebalanceAuto.rebalanceDisk }}
+  {{- with .Values.kafkaRebalanceAuto.goals }}
+  goals:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+---
+# ServiceAccount used by the periodic rebalance CronJob
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $rebalanceName }}-trigger
+  namespace: {{ $namespace }}
+  labels:
+    {{- include "strimzi-cluster-instance.labels" $ | nindent 4 }}
+---
+# Role grants the CronJob the minimum rights needed to trigger a rebalance:
+# get (to read current state) and patch (to write the refresh/approve annotation).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ $rebalanceName }}-trigger
+  namespace: {{ $namespace }}
+  labels:
+    {{- include "strimzi-cluster-instance.labels" $ | nindent 4 }}
+rules:
+  - apiGroups: ["kafka.strimzi.io"]
+    resources: ["kafkarebalances"]
+    verbs: ["get", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $rebalanceName }}-trigger
+  namespace: {{ $namespace }}
+  labels:
+    {{- include "strimzi-cluster-instance.labels" $ | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ $rebalanceName }}-trigger
+subjects:
+  - kind: ServiceAccount
+    name: {{ $rebalanceName }}-trigger
+    namespace: {{ $namespace }}
+---
+# CronJob that periodically refreshes the KafkaRebalance CR.
+# When autoApproval is true the Strimzi operator handles approval automatically.
+# When autoApproval is false the job waits for the proposal to be ready and then
+# annotates it with "approve" so the rebalance proceeds without manual steps.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ $rebalanceName }}-trigger
+  namespace: {{ $namespace }}
+  labels:
+    {{- include "strimzi-cluster-instance.labels" $ | nindent 4 }}
+spec:
+  # Default: weekly on Sunday at 02:00 UTC — adjust via kafkaRebalanceAuto.schedule
+  schedule: {{ .Values.kafkaRebalanceAuto.schedule | quote }}
+  # Forbid prevents a new job starting while a previous one is still running,
+  # which avoids concurrent rebalances that could destabilise the cluster.
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: {{ .Values.kafkaRebalanceAuto.cronJob.successfulJobsHistoryLimit }}
+  failedJobsHistoryLimit: {{ .Values.kafkaRebalanceAuto.cronJob.failedJobsHistoryLimit }}
+  jobTemplate:
+    spec:
+      # Allow the job to retry on transient failures (e.g. API server blip).
+      backoffLimit: {{ .Values.kafkaRebalanceAuto.cronJob.backoffLimit }}
+      activeDeadlineSeconds: {{ .Values.kafkaRebalanceAuto.cronJob.activeDeadlineSeconds }}
+      template:
+        metadata:
+          labels:
+            {{- include "strimzi-cluster-instance.selectorLabels" $ | nindent 12 }}
+            app.kubernetes.io/component: rebalance-trigger
+        spec:
+          serviceAccountName: {{ $rebalanceName }}-trigger
+          restartPolicy: OnFailure
+          {{- with .Values.kafkaRebalanceAuto.cronJob.tolerations }}
+          tolerations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.kafkaRebalanceAuto.cronJob.nodeSelector }}
+          nodeSelector:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          containers:
+            - name: trigger
+              image: "{{ .Values.kafkaRebalanceAuto.cronJob.image.repository }}:{{ .Values.kafkaRebalanceAuto.cronJob.image.tag }}"
+              imagePullPolicy: IfNotPresent
+              {{- with .Values.kafkaRebalanceAuto.cronJob.resources }}
+              resources:
+                {{- toYaml . | nindent 16 }}
+              {{- end }}
+              env:
+                - name: REBALANCE_NAME
+                  value: {{ $rebalanceName | quote }}
+                - name: NAMESPACE
+                  value: {{ $namespace | quote }}
+                - name: AUTO_APPROVAL
+                  value: {{ .Values.kafkaRebalanceAuto.autoApproval | quote }}
+                - name: PROPOSAL_WAIT_TIMEOUT
+                  value: {{ .Values.kafkaRebalanceAuto.cronJob.proposalWaitTimeout | quote }}
+              command:
+                - /bin/sh
+                - -ec
+                - |
+                  echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] Triggering periodic KafkaRebalance refresh: ${REBALANCE_NAME}"
+
+                  # Stamp a refresh annotation so Cruise Control computes a fresh proposal.
+                  kubectl annotate kafkarebalance "${REBALANCE_NAME}" \
+                    strimzi.io/rebalance=refresh \
+                    --overwrite \
+                    -n "${NAMESPACE}"
+
+                  echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] Refresh annotation applied."
+
+                  # When autoApproval is disabled (older Strimzi or explicit manual-step override)
+                  # wait for the proposal to reach ProposalReady, then apply the approve annotation
+                  # so no human intervention is required for a truly automated periodic rebalance.
+                  if [ "${AUTO_APPROVAL}" = "false" ]; then
+                    echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] autoApproval disabled — waiting up to ${PROPOSAL_WAIT_TIMEOUT}s for ProposalReady…"
+                    kubectl wait kafkarebalance "${REBALANCE_NAME}" \
+                      --for=condition=ProposalReady \
+                      --timeout="${PROPOSAL_WAIT_TIMEOUT}s" \
+                      -n "${NAMESPACE}"
+
+                    echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] Proposal ready — annotating with approve."
+                    kubectl annotate kafkarebalance "${REBALANCE_NAME}" \
+                      strimzi.io/rebalance=approve \
+                      --overwrite \
+                      -n "${NAMESPACE}"
+                  fi
+
+                  echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] Rebalance triggered successfully."
+{{- end }}
