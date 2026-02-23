@@ -12,7 +12,7 @@ spec:
         kind: HelmRepository
         name: jetstack
         namespace: flux-system
-      version: "v0.20.3"
+      version: "v0.21.1"
   dependsOn:
     - name: cert-manager
       namespace: cert-manager
