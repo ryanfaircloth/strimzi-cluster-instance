@@ -73,6 +73,18 @@ nodePools:
       # limits:
       #   memory: "4Gi"
       #   cpu: "2000m"
+    # JVM options for broker pods following Strimzi best practices.
+    # -Xms=-Xmx avoids costly heap resize; sized to ~50 % of the pod memory request.
+    # G1GC with MaxGCPauseMillis=20 and IHOP=35 matches Confluent/Kafka tuning guidance.
+    # Set to {} or omit to use Strimzi defaults.
+    jvmOptions:
+      "-Xms": "1g"
+      "-Xmx": "1g"
+      gcLoggingEnabled: false
+      "-XX":
+        MaxGCPauseMillis: "20"
+        InitiatingHeapOccupancyPercent: "35"
+        ExplicitGCInvokesConcurrent: "true"
   
   - name: controller
     roles:
@@ -120,6 +132,16 @@ nodePools:
       # limits:
       #   memory: "2Gi"
       #   cpu: "1000m"
+    # JVM options for controller pods; sized identically to brokers.
+    # Set to {} or omit to use Strimzi defaults.
+    jvmOptions:
+      "-Xms": "1g"
+      "-Xmx": "1g"
+      gcLoggingEnabled: false
+      "-XX":
+        MaxGCPauseMillis: "20"
+        InitiatingHeapOccupancyPercent: "35"
+        ExplicitGCInvokesConcurrent: "true"
 
 # Kafka CR settings
 kafka:
@@ -216,6 +238,16 @@ kafka:
       inboundNetwork: 15728640KiB/s
       outboundNetwork: 15728640KiB/s
     config: {}
+    # JVM options for CruiseControl; sized to ~50 % of its memory request (1 Gi → 512 m).
+    # Set to {} or omit to use Strimzi defaults.
+    jvmOptions:
+      "-Xms": "512m"
+      "-Xmx": "512m"
+      gcLoggingEnabled: false
+      "-XX":
+        MaxGCPauseMillis: "20"
+        InitiatingHeapOccupancyPercent: "35"
+        ExplicitGCInvokesConcurrent: "true"
     # Additional match expressions to add to the default node affinity for Cruise Control
     additionalNodeMatchExpressions: []
     template:
@@ -266,6 +298,12 @@ kafka:
         # limits:
         #   memory: "1Gi"
         #   cpu: "500m"
+      # JVM options for the Topic Operator; sized to ~50 % of its memory request.
+      # Set to {} or omit to use Strimzi defaults.
+      jvmOptions:
+        "-Xms": "256m"
+        "-Xmx": "256m"
+        gcLoggingEnabled: false
     userOperator:
       watchAnyNamespace: false
       # Set watchedNamespace to the namespace where the operator should watch for resources
@@ -280,6 +318,12 @@ kafka:
         # limits:
         #   memory: "1Gi"
         #   cpu: "500m"
+      # JVM options for the User Operator; sized to ~50 % of its memory request.
+      # Set to {} or omit to use Strimzi defaults.
+      jvmOptions:
+        "-Xms": "256m"
+        "-Xmx": "256m"
+        gcLoggingEnabled: false
     version: null
 
   podMonitor:

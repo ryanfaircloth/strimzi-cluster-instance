@@ -89,6 +89,10 @@ spec:
     resources:
       {{- toYaml . | nindent 6 }}
     {{- end }}
+    {{- with .Values.kafka.cruiseControl.jvmOptions }}
+    jvmOptions:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
     {{- with .Values.kafka.cruiseControl.template.pod }}
     template:
       pod:
@@ -207,6 +211,10 @@ spec:
       resources:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- with .Values.kafka.entityOperator.topicOperator.jvmOptions }}
+      jvmOptions:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       
     userOperator:
       {{- if.Values.kafka.entityOperator.userOperator.watchAnyNamespace }}
@@ -219,5 +227,9 @@ spec:
       {{- end }}
       {{- with .Values.kafka.entityOperator.userOperator.resources }}
       resources:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.kafka.entityOperator.userOperator.jvmOptions }}
+      jvmOptions:
         {{- toYaml . | nindent 8 }}
       {{- end }}
