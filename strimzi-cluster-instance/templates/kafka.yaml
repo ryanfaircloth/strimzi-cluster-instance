@@ -65,6 +65,17 @@ spec:
     {{- if and .Values.kafka.logging (not (empty .Values.kafka.logging)) }}
     logging:
       {{- toYaml .Values.kafka.logging | nindent 6 }}
+    {{- else }}
+    {{- $kafkaLog4j2 := .Values.logging.kafka.log4j2Properties | default "" }}
+    {{- if eq $kafkaLog4j2 "" }}{{- $kafkaLog4j2 = .Values.logging.log4j2Properties | default "" }}{{- end }}
+    {{- if $kafkaLog4j2 }}
+    logging:
+      type: external
+      valueFrom:
+        configMapKeyRef:
+          name: {{ include "strimzi-cluster-instance.fullname" . }}-kafka-logging
+          key: log4j2.properties
+    {{- end }}
     {{- end }}
     {{- if .Values.kafka.metadataVersion }}
     metadataVersion: {{ .Values.kafka.metadataVersion }}
@@ -92,6 +103,21 @@ spec:
     {{- with .Values.kafka.cruiseControl.jvmOptions }}
     jvmOptions:
       {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- if and .Values.kafka.cruiseControl.logging (not (empty .Values.kafka.cruiseControl.logging)) }}
+    logging:
+      {{- toYaml .Values.kafka.cruiseControl.logging | nindent 6 }}
+    {{- else }}
+    {{- $ccLog4j2 := .Values.logging.cruiseControl.log4j2Properties | default "" }}
+    {{- if eq $ccLog4j2 "" }}{{- $ccLog4j2 = .Values.logging.log4j2Properties | default "" }}{{- end }}
+    {{- if $ccLog4j2 }}
+    logging:
+      type: external
+      valueFrom:
+        configMapKeyRef:
+          name: {{ include "strimzi-cluster-instance.fullname" . }}-cruisecontrol-logging
+          key: log4j2.properties
+    {{- end }}
     {{- end }}
     {{- with .Values.kafka.cruiseControl.template.pod }}
     template:
@@ -215,7 +241,22 @@ spec:
       jvmOptions:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      
+      {{- if and .Values.kafka.entityOperator.topicOperator.logging (not (empty .Values.kafka.entityOperator.topicOperator.logging)) }}
+      logging:
+        {{- toYaml .Values.kafka.entityOperator.topicOperator.logging | nindent 8 }}
+      {{- else }}
+      {{- $toLog4j2 := .Values.logging.topicOperator.log4j2Properties | default "" }}
+      {{- if eq $toLog4j2 "" }}{{- $toLog4j2 = .Values.logging.log4j2Properties | default "" }}{{- end }}
+      {{- if $toLog4j2 }}
+      logging:
+        type: external
+        valueFrom:
+          configMapKeyRef:
+            name: {{ include "strimzi-cluster-instance.fullname" . }}-topicoperator-logging
+            key: log4j2.properties
+      {{- end }}
+      {{- end }}
+
     userOperator:
       {{- if.Values.kafka.entityOperator.userOperator.watchAnyNamespace }}
       {{- else }}      
@@ -232,4 +273,19 @@ spec:
       {{- with .Values.kafka.entityOperator.userOperator.jvmOptions }}
       jvmOptions:
         {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if and .Values.kafka.entityOperator.userOperator.logging (not (empty .Values.kafka.entityOperator.userOperator.logging)) }}
+      logging:
+        {{- toYaml .Values.kafka.entityOperator.userOperator.logging | nindent 8 }}
+      {{- else }}
+      {{- $uoLog4j2 := .Values.logging.userOperator.log4j2Properties | default "" }}
+      {{- if eq $uoLog4j2 "" }}{{- $uoLog4j2 = .Values.logging.log4j2Properties | default "" }}{{- end }}
+      {{- if $uoLog4j2 }}
+      logging:
+        type: external
+        valueFrom:
+          configMapKeyRef:
+            name: {{ include "strimzi-cluster-instance.fullname" . }}-useroperator-logging
+            key: log4j2.properties
+      {{- end }}
       {{- end }}

@@ -1,0 +1,78 @@
+{{/*
+  logging-configmaps.yaml
+  Generates one ConfigMap per Strimzi component that carries its log4j2.properties
+  file for JSON-format structured logging.
+
+  Precedence per component:
+    1. Component-specific log4j2Properties  (e.g. .Values.logging.kafka.log4j2Properties)
+    2. Shared default                        (.Values.logging.log4j2Properties)
+    3. Empty → no ConfigMap, component uses Strimzi built-in defaults
+
+  Each component's Strimzi logging spec (.Values.kafka.logging, etc.) can still
+  override the external ConfigMap entirely by being set to a non-empty map.
+*/}}
+
+{{- $sharedProps := .Values.logging.log4j2Properties | default "" }}
+
+{{/* ─── Kafka broker / controller ─────────────────────────────────────────── */}}
+{{- $kafkaProps := .Values.logging.kafka.log4j2Properties | default "" }}
+{{- if eq $kafkaProps "" }}{{- $kafkaProps = $sharedProps }}{{- end }}
+{{- if $kafkaProps }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "strimzi-cluster-instance.fullname" . }}-kafka-logging
+  labels:
+    {{- include "strimzi-cluster-instance.labels" . | nindent 4 }}
+data:
+  log4j2.properties: |
+{{ $kafkaProps | indent 4 }}
+{{- end }}
+
+{{/* ─── CruiseControl ──────────────────────────────────────────────────────── */}}
+{{- $ccProps := .Values.logging.cruiseControl.log4j2Properties | default "" }}
+{{- if eq $ccProps "" }}{{- $ccProps = $sharedProps }}{{- end }}
+{{- if $ccProps }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "strimzi-cluster-instance.fullname" . }}-cruisecontrol-logging
+  labels:
+    {{- include "strimzi-cluster-instance.labels" . | nindent 4 }}
+data:
+  log4j2.properties: |
+{{ $ccProps | indent 4 }}
+{{- end }}
+
+{{/* ─── Topic Operator ─────────────────────────────────────────────────────── */}}
+{{- $toProps := .Values.logging.topicOperator.log4j2Properties | default "" }}
+{{- if eq $toProps "" }}{{- $toProps = $sharedProps }}{{- end }}
+{{- if $toProps }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "strimzi-cluster-instance.fullname" . }}-topicoperator-logging
+  labels:
+    {{- include "strimzi-cluster-instance.labels" . | nindent 4 }}
+data:
+  log4j2.properties: |
+{{ $toProps | indent 4 }}
+{{- end }}
+
+{{/* ─── User Operator ──────────────────────────────────────────────────────── */}}
+{{- $uoProps := .Values.logging.userOperator.log4j2Properties | default "" }}
+{{- if eq $uoProps "" }}{{- $uoProps = $sharedProps }}{{- end }}
+{{- if $uoProps }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "strimzi-cluster-instance.fullname" . }}-useroperator-logging
+  labels:
+    {{- include "strimzi-cluster-instance.labels" . | nindent 4 }}
+data:
+  log4j2.properties: |
+{{ $uoProps | indent 4 }}
+{{- end }}

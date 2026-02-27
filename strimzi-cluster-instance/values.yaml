@@ -201,16 +201,16 @@ kafka:
   metricsConfig: {}
 
   # logging configures the log4j2 configuration for broker and controller pods.
-  # Set to {} or omit to use Strimzi defaults (plain-text log4j).
+  # When set to a non-empty map it takes full precedence over the top-level
+  # `logging` defaults (see below).  Set to {} to inherit the shared defaults.
   #
-  # Example — inline loggers:
+  # Example — inline loggers (level overrides only, no layout control):
   #   logging:
   #     type: inline
   #     loggers:
-  #       log4j.logger.kafka: INFO
-  #       log4j.logger.org.apache.kafka: INFO
+  #       rootLogger.level: DEBUG
   #
-  # Example — reference an external ConfigMap:
+  # Example — reference a custom ConfigMap:
   #   logging:
   #     type: external
   #     valueFrom:
@@ -248,6 +248,10 @@ kafka:
         MaxGCPauseMillis: "20"
         InitiatingHeapOccupancyPercent: "35"
         ExplicitGCInvokesConcurrent: "true"
+    # logging configures log4j2 for CruiseControl.
+    # When set to a non-empty map it takes full precedence over the top-level
+    # `logging` defaults.  Set to {} to inherit the shared defaults.
+    logging: {}
     # Additional match expressions to add to the default node affinity for Cruise Control
     additionalNodeMatchExpressions: []
     template:
@@ -304,6 +308,10 @@ kafka:
         "-Xms": "256m"
         "-Xmx": "256m"
         gcLoggingEnabled: false
+      # logging configures log4j2 for the Topic Operator.
+      # When set to a non-empty map it takes full precedence over the top-level
+      # `logging` defaults.  Set to {} to inherit the shared defaults.
+      logging: {}
     userOperator:
       watchAnyNamespace: false
       # Set watchedNamespace to the namespace where the operator should watch for resources
@@ -324,6 +332,10 @@ kafka:
         "-Xms": "256m"
         "-Xmx": "256m"
         gcLoggingEnabled: false
+      # logging configures log4j2 for the User Operator.
+      # When set to a non-empty map it takes full precedence over the top-level
+      # `logging` defaults.  Set to {} to inherit the shared defaults.
+      logging: {}
     version: null
 
   podMonitor:
@@ -339,6 +351,85 @@ kafka:
     portName: "tcp-prometheus"
     # Additional labels to apply to the PodMonitor resource
     additionalLabels: {}
+
+# Logging configuration for all Strimzi components.
+#
+# When log4j2Properties is non-empty, a ConfigMap is generated per component
+# and each component is configured with `logging.type: external` pointing to it.
+# This enables JSON-format structured logging throughout the cluster.
+#
+# Per-component inline Strimzi logging specs (kafka.logging,
+# kafka.cruiseControl.logging, kafka.entityOperator.topicOperator.logging, and
+# kafka.entityOperator.userOperator.logging) take full precedence when non-empty.
+#
+# To revert a component to Strimzi defaults, set its component-level logging
+# to a non-empty inline spec, e.g.: logging: { type: inline, loggers: {} }
+logging:
+  # Default log4j2.properties applied to every component.
+  # Set to "" to disable JSON logging overrides globally.
+  log4j2Properties: |
+    name=COConfig
+    monitorInterval=30
+
+    appender.console.type=Console
+    appender.console.name=STDOUT
+    appender.console.layout.type=JsonTemplateLayout
+
+    rootLogger.level=INFO
+    rootLogger.appenderRefs=stdout
+    rootLogger.appenderRef.stdout.ref=STDOUT
+
+  # Per-component overrides. When log4j2Properties is non-empty it replaces
+  # the shared default above for that component only.
+  # Set a component's log4j2Properties to "" to fall back to the shared default.
+  kafka:
+    log4j2Properties: |
+      name=COConfig
+      monitorInterval=30
+
+      appender.console.type=Console
+      appender.console.name=STDOUT
+      appender.console.layout.type=JsonTemplateLayout
+
+      rootLogger.level=INFO
+      rootLogger.appenderRefs=stdout
+      rootLogger.appenderRef.stdout.ref=STDOUT
+  topicOperator:
+    log4j2Properties: |
+      name=COConfig
+      monitorInterval=30
+
+      appender.console.type=Console
+      appender.console.name=STDOUT
+      appender.console.layout.type=JsonTemplateLayout
+
+      rootLogger.level=INFO
+      rootLogger.appenderRefs=stdout
+      rootLogger.appenderRef.stdout.ref=STDOUT
+  userOperator:
+    log4j2Properties: |
+      name=COConfig
+      monitorInterval=30
+
+      appender.console.type=Console
+      appender.console.name=STDOUT
+      appender.console.layout.type=JsonTemplateLayout
+
+      rootLogger.level=INFO
+      rootLogger.appenderRefs=stdout
+      rootLogger.appenderRef.stdout.ref=STDOUT
+  cruiseControl:
+    log4j2Properties: |
+      name=COConfig
+      monitorInterval=30
+
+      appender.console.type=Console
+      appender.console.name=STDOUT
+      appender.console.layout.type=JsonTemplateLayout
+
+      rootLogger.level=INFO
+      rootLogger.appenderRefs=stdout
+      rootLogger.appenderRef.stdout.ref=STDOUT
 
 kafkaRebalance:
   enabled: true
