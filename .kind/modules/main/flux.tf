@@ -28,7 +28,7 @@ resource "helm_release" "flux_instance" {
   namespace  = kubernetes_namespace_v1.flux_system.metadata[0].name
   repository = "oci://ghcr.io/controlplaneio-fluxcd/charts"
   chart      = "flux-instance"
-  version    = "0.38.1"
+  version    = "0.43.0"
   values = [
     file("${path.module}/helm-values/flux-instance-values.yaml")
   ]
