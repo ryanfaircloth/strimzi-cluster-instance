@@ -16,7 +16,11 @@ metadata:
 spec:
   kafka:
     authorization:
-      type: simple
+      type: {{ .Values.kafka.authorization.type | default "simple" }}
+      {{- with .Values.kafka.superUsers }}
+      superUsers:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
     {{- if .Values.kafka.brokerRackInitImage }}
     brokerRackInitImage: {{ .Values.kafka.brokerRackInitImage }}
     {{- end }}
@@ -56,6 +60,26 @@ spec:
             broker: {{ $i }}
           {{- end }}
           createBootstrapService: true
+      {{- end }}
+      {{- if .Values.kafka.listeners.oauth.enabled }}
+      - name: oauth
+        port: {{ .Values.kafka.listeners.oauth.port }}
+        tls: true
+        type: {{ .Values.kafka.listeners.oauth.type | default "internal" }}
+        authentication:
+          type: oauth
+          validIssuerUri: {{ required "kafka.listeners.oauth.validIssuerUri is required when oauth is enabled" .Values.kafka.listeners.oauth.validIssuerUri | quote }}
+          jwksEndpointUri: {{ required "kafka.listeners.oauth.jwksEndpointUri is required when oauth is enabled" .Values.kafka.listeners.oauth.jwksEndpointUri | quote }}
+          userNameClaim: {{ .Values.kafka.listeners.oauth.userNameClaim | quote }}
+          {{- if .Values.kafka.listeners.oauth.groupsClaim }}
+          groupsClaim: {{ .Values.kafka.listeners.oauth.groupsClaim | quote }}
+          {{- end }}
+          maxSecondsWithoutReauthentication: {{ .Values.kafka.listeners.oauth.maxSecondsWithoutReauthentication }}
+          checkAccessTokenType: {{ .Values.kafka.listeners.oauth.checkAccessTokenType }}
+          {{- with .Values.kafka.listeners.oauth.tlsTrustedCertificates }}
+          tlsTrustedCertificates:
+            {{- toYaml . | nindent 10 }}
+          {{- end }}
       {{- end }}
 
     {{- if and .Values.kafka.metricsConfig (not (empty .Values.kafka.metricsConfig)) }}

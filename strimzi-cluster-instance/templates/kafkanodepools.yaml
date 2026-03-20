@@ -1,3 +1,16 @@
+{{- /* Validate that every persistent-claim volume has an explicit StorageClass.
+     An empty class would cause Strimzi to fall back to the cluster default,
+     which is rarely correct and hard to debug. Fail fast with an actionable
+     message instead. */}}
+{{- range $pool := .Values.nodePools }}
+  {{- if $pool.storage }}
+    {{- range $vol := $pool.storage.volumes }}
+      {{- if and (eq $vol.type "persistent-claim") (not $vol.class) }}
+        {{- fail (printf "nodePools[%s] storage volume id=%v: type=persistent-claim requires .class to be set (e.g. gp3, standard-rwo, managed-premium)" $pool.name $vol.id) }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
 {{- range .Values.nodePools }}
 {{- $poolName := .name }}
 ---

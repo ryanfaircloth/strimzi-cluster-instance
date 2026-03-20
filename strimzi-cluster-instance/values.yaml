@@ -50,19 +50,25 @@ nodePools:
       type: jbod
       volumes:
         - id: 0
-          type: ephemeral
+          type: persistent-claim
+          size: 200Gi
+          # class is required — set to your environment's StorageClass name.
+          # Examples: gp3 (AWS EKS), standard-rwo (GKE), managed-premium (AKS)
+          class: ""
+          deleteClaim: false
+  # Example — two-volume JBOD broker pool:
   #   storage:
   #     type: jbod
   #     volumes:
   #       - id: 0
   #         type: persistent-claim
-  #         size: 64Gi
-  #         # Indicates that this directory will be used to store Kraft metadata log
-  #         kraftMetadata: shared
+  #         size: 200Gi
+  #         class: gp3
   #         deleteClaim: false
   #       - id: 1
   #         type: persistent-claim
-  #         size: 64Gi
+  #         size: 200Gi
+  #         class: gp3
   #         deleteClaim: false
     # Resource requests and limits for broker pods
     # Set to null or {} to omit resource constraints (not recommended for production)
@@ -111,18 +117,15 @@ nodePools:
       type: jbod
       volumes:
         - id: 0
-          type: ephemeral
-          sizeLimit: 64Gi
-          kraftMetadata: shared  
-  #   storage:
-  #     type: jbod
-  #     volumes:
-  #       - id: 0
-  #         type: persistent-claim
-  #         size: 64Gi
-  #         # Indicates that this directory will be used to store Kraft metadata log
-  #         kraftMetadata: shared
-  #         deleteClaim: false
+          type: persistent-claim
+          size: 20Gi
+          # class is required — set to your environment's StorageClass name.
+          # Examples: gp3 (AWS EKS), standard-rwo (GKE), managed-premium (AKS)
+          class: ""
+          # kraftMetadata: shared must remain on the controller volume so the
+          # KRaft quorum log co-locates on that volume.
+          kraftMetadata: shared
+          deleteClaim: false
     # Resource requests and limits for controller pods
     # Set to null or {} to omit resource constraints (not recommended for production)
     resources:
@@ -147,6 +150,15 @@ nodePools:
 kafka:
   additionalAnnotations: {}
   additionalLabels: {}
+  # Authorization type for the Kafka cluster. "simple" uses built-in Kafka ACLs.
+  authorization:
+    type: simple
+  # superUsers bypass all ACL checks. Required when MirrorMaker2 uses Simple authorization.
+  superUsers: []
+  # Example:
+  # superUsers:
+  #   - User:mirrormaker2
+  #   - User:CN=my-service-account
   brokerRackInitImage: null
   
   config:
@@ -229,6 +241,33 @@ kafka:
       type: cluster-ip
       authentication:
         type: scram-sha-512
+    oauth:
+      enabled: false
+      port: 9095
+      # Listener type: internal, cluster-ip, or loadbalancer.
+      type: internal
+      # OIDC issuer URI — must match the `iss` claim in JWT tokens.
+      # Example (authentik): https://sso.example.com/application/o/kafka/
+      validIssuerUri: ""
+      # JWKS endpoint for public key retrieval.
+      # Example (authentik): https://sso.example.com/application/o/kafka/jwks/
+      jwksEndpointUri: ""
+      # JWT claim to map to the Kafka principal (username).
+      userNameClaim: preferred_username
+      # JWT claim for group membership. Optional — leave empty to omit.
+      groupsClaim: ""
+      # Token re-authentication interval in seconds. 0 disables re-auth.
+      maxSecondsWithoutReauthentication: 3600
+      # Set true only when the OIDC provider does NOT include `typ: Bearer` in the
+      # token header. authentik and Keycloak set this correctly; leave false.
+      checkAccessTokenType: false
+      # TLS trusted certificates for validating the OIDC provider TLS cert.
+      # Leave empty to use the system trust store (works for public CAs).
+      tlsTrustedCertificates: []
+      # Example:
+      # tlsTrustedCertificates:
+      #   - secretName: oidc-provider-ca
+      #     certificate: ca.crt
   metadataVersion: null
   rack:
     topologyKey: topology.kubernetes.io/zone
@@ -551,6 +590,7 @@ kafkaRebalanceAuto:
 gateway:
   enabled: false
   dnsSuffix: "strimzi.gateway.api.test"
+  advertisedPort: 443
   certificate:
     enabled: true
     issuerRef:
