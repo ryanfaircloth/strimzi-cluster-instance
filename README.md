@@ -123,32 +123,31 @@ This monorepo contains three independently versioned Helm charts, each published
 | `strimzi-mirrormaker2-instance` | `oci://ghcr.io/ryanfaircloth/strimzi-mirrormaker2-instance` |
 | `strimzi-kafka-users` | `oci://ghcr.io/ryanfaircloth/strimzi-kafka-users` |
 
-> **Charts are always built and published by CI. There are no manual release steps.**
+> **Charts are always built and published by CI. Never run `helm push` locally.**
 
 ### How it works
 
-Each chart has a dedicated GitHub Actions workflow that watches for pushes to `main` that touch that chart's directory. When a push is detected, CI compares the `version:` field in `Chart.yaml` against the previous commit. If the version has changed, CI automatically:
+Each chart has a dedicated GitHub Actions workflow triggered by a git tag matching its name:
 
-1. Packages the chart at the new version
-2. Pushes it to GHCR
-3. Creates a git tag (`<chart-name>/v<version>`) and a GitHub Release
+| Tag pushed | Workflow triggered | Chart published |
+|---|---|---|
+| `strimzi-cluster-instance/v1.3.0` | `release-strimzi-cluster-instance.yml` | `strimzi-cluster-instance:1.3.0` |
+| `strimzi-mirrormaker2-instance/v1.0.0` | `release-strimzi-mirrormaker2-instance.yml` | `strimzi-mirrormaker2-instance:1.0.0` |
+| `strimzi-kafka-users/v1.0.0` | `release-strimzi-kafka-users.yml` | `strimzi-kafka-users:1.0.0` |
 
-| Files changed on `main` | Workflow triggered |
-|---|---|
-| `strimzi-cluster-instance/**` | `release-strimzi-cluster-instance.yml` |
-| `strimzi-mirrormaker2-instance/**` | `release-strimzi-mirrormaker2-instance.yml` |
-| `strimzi-kafka-users/**` | `release-strimzi-kafka-users.yml` |
-
-If the version in `Chart.yaml` is **not** changed, the workflow runs but skips the release job — safe to push chart changes without triggering a release simply by leaving the version unchanged.
+CI extracts the semver from the tag with `helm package --version`, pushes the chart to GHCR, then creates a GitHub Release against that tag.
 
 ### Releasing a chart
 
 1. Make your changes to the chart.
-2. Bump `version:` in the chart's `Chart.yaml` to the next semver.
-3. Commit and open a PR (or push directly to `main`).
-4. Merge to `main` — CI handles the rest.
+2. Bump `version:` in the chart's `Chart.yaml`.
+3. Commit and push to `main`.
+4. Push the release tag — CI does the rest:
 
-That's it. No tagging. No `helm push`. No local build.
+```bash
+git tag strimzi-cluster-instance/v1.3.1
+git push origin strimzi-cluster-instance/v1.3.1
+```
 
 ### Using published charts
 

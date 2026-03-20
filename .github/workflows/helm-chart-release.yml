@@ -11,11 +11,6 @@ on:
                 description: "Path to the chart directory relative to the repository root"
                 required: true
                 type: string
-            version:
-                description: "Semver version to publish (read from Chart.yaml by the caller)"
-                required: true
-                type: string
-
 env:
     REGISTRY: ghcr.io
 
@@ -42,26 +37,32 @@ jobs:
                   username: ${{ github.actor }}
                   password: ${{ secrets.GITHUB_TOKEN }}
 
+            - name: Extract version from tag
+              id: version
+              run: |
+                  # Tag format: <chart-name>/v<semver>  e.g.  strimzi-cluster-instance/v1.3.0
+                  VERSION="${GITHUB_REF_NAME#*/v}"
+                  echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
             - name: Package Helm chart
               run: |
                   mkdir -p .out
                   helm package "${{ inputs.chart-path }}" \
-                    --version "${{ inputs.version }}" \
+                    --version "${{ steps.version.outputs.version }}" \
                     --destination .out
 
             - name: Push Helm chart to GHCR
               run: |
-                  CHART_PACKAGE=".out/${{ inputs.chart-name }}-${{ inputs.version }}.tgz"
+                  CHART_PACKAGE=".out/${{ inputs.chart-name }}-${{ steps.version.outputs.version }}.tgz"
                   CHART_REPO="oci://${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ inputs.chart-name }}"
                   echo "Pushing ${CHART_PACKAGE} to ${CHART_REPO}"
                   helm push "${CHART_PACKAGE}" "${CHART_REPO}"
 
-            - name: Create GitHub Release and tag
+            - name: Create GitHub Release
               env:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
-                  TAG="${{ inputs.chart-name }}/v${{ inputs.version }}"
-                  gh release create "${TAG}" \
-                    --title "${{ inputs.chart-name }} v${{ inputs.version }}" \
-                    --notes "Automated release of ${{ inputs.chart-name }} v${{ inputs.version }}" \
+                  gh release create "${GITHUB_REF_NAME}" \
+                    --title "${{ inputs.chart-name }} v${{ steps.version.outputs.version }}" \
+                    --notes "Release of ${{ inputs.chart-name }} v${{ steps.version.outputs.version }}" \
                     --target "${{ github.sha }}"

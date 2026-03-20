@@ -33,10 +33,20 @@ VERSION       := $(shell \
 CHART_OUTPUT  := .out/$(CHART_NAME)-$(VERSION).tgz
 CHART_REPO    := oci://localhost:5050/dev/charts/
 
-.PHONY: dev build-dev push-dev up up-dev down clean-version clean hostctl lint lint-all
+.PHONY: dev build-dev push-dev up up-dev down clean-version clean hostctl tag-release lint lint-all
 
 ## Build and push the chart (development workflow)
 dev: build-dev push-dev
+
+## Tag and push a release tag — triggers CI to package and publish the chart.
+## Example: make tag-release CHART=strimzi-cluster-instance RELEASE_VERSION=1.3.1
+tag-release:
+	@if [ -z "$(RELEASE_VERSION)" ] || [ -z "$(CHART)" ]; then \
+		echo "Usage: make tag-release CHART=<chart-name> RELEASE_VERSION=<semver>"; \
+		exit 1; \
+	fi
+	git tag "$(CHART)/v$(RELEASE_VERSION)"
+	git push origin "$(CHART)/v$(RELEASE_VERSION)"
 
 ## Build, push, and apply the chart using Terraform (development workflow)
 up: build-dev up-dev push-dev
