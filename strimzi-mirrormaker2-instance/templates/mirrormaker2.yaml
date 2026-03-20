@@ -1,0 +1,86 @@
+{{- if not .Values.clusters }}
+  {{- fail "strimzi-mirrormaker2-instance: .Values.clusters must be a non-empty list" }}
+{{- end }}
+{{- if not .Values.mirrors }}
+  {{- fail "strimzi-mirrormaker2-instance: .Values.mirrors must be a non-empty list" }}
+{{- end }}
+{{- if not .Values.connectCluster }}
+  {{- fail "strimzi-mirrormaker2-instance: .Values.connectCluster must be set to the alias of the target cluster" }}
+{{- end }}
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaMirrorMaker2
+metadata:
+  name: {{ include "strimzi-mirrormaker2-instance.fullname" . }}
+  labels:
+    {{- include "strimzi-mirrormaker2-instance.labels" . | nindent 4 }}
+    {{- with .Values.additionalLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.additionalAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.replicas }}
+  {{- if .Values.kafkaVersion }}
+  version: {{ .Values.kafkaVersion | quote }}
+  {{- end }}
+  connectCluster: {{ .Values.connectCluster | quote }}
+  clusters:
+    {{- toYaml .Values.clusters | nindent 4 }}
+  mirrors:
+    {{- toYaml .Values.mirrors | nindent 4 }}
+  resources:
+    {{- toYaml .Values.resources | nindent 4 }}
+  {{- with .Values.jvmOptions }}
+  jvmOptions:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- if and .Values.metricsConfig (not (empty .Values.metricsConfig)) }}
+  metricsConfig:
+    {{- toYaml .Values.metricsConfig | nindent 4 }}
+  {{- end }}
+  {{- if and .Values.logging (not (empty .Values.logging)) }}
+  logging:
+    {{- toYaml .Values.logging | nindent 4 }}
+  {{- else if .Values.log4j2Properties }}
+  logging:
+    type: external
+    valueFrom:
+      configMapKeyRef:
+        name: {{ include "strimzi-mirrormaker2-instance.fullname" . }}-logging
+        key: log4j2.properties
+  {{- end }}
+  template:
+    pod:
+      {{- if or .Values.defaultArchitecture .Values.additionalNodeMatchExpressions (not (empty .Values.template.pod.affinity)) }}
+      affinity:
+        {{- if and .Values.template.pod.affinity (not (empty .Values.template.pod.affinity)) }}
+        {{- toYaml .Values.template.pod.affinity | nindent 8 }}
+        {{- else if or .Values.defaultArchitecture .Values.additionalNodeMatchExpressions }}
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                {{- if .Values.defaultArchitecture }}
+                  - key: kubernetes.io/arch
+                    operator: In
+                    values:
+                      - {{ .Values.defaultArchitecture }}
+                {{- end }}
+                {{- range .Values.additionalNodeMatchExpressions }}
+                  - {{- toYaml . | nindent 20 }}
+                {{- end }}
+        {{- end }}
+      {{- end }}
+      {{- with .Values.template.pod.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.template.pod.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.template.pod.priorityClassName }}
+      priorityClassName: {{ .Values.template.pod.priorityClassName | quote }}
+      {{- end }}

@@ -1,0 +1,36 @@
+# Default values for strimzi-kafka-users.
+
+fullnameOverride: ""
+nameOverride: ""
+
+# clusterName — the name of the Kafka cluster these users belong to.
+# This is set as the strimzi.io/cluster label on each KafkaUser and is
+# REQUIRED. The Strimzi Entity Operator uses this label to determine which
+# cluster to provision the user credentials for.
+clusterName: ""
+
+# users — list of KafkaUser definitions to create.
+users: []
+# Example:
+# users:
+#   - name: my-app
+#     additionalAnnotations: {}
+#     additionalLabels: {}
+#     authentication:
+#       type: scram-sha-512
+#     authorization:
+#       type: simple
+#       acls:
+#         - resource:
+#             type: topic
+#             name: my-topic
+#             patternType: literal
+#           operations:
+#             - Read
+#             - Describe
+#         - resource:
+#             type: group
+#             name: my-app
+#             patternType: literal
+#           operations:
+#             - Read

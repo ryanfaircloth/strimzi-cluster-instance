@@ -10,9 +10,16 @@
 #   clean        : Remove build artifacts and version file
 #   clean-version: Remove only the version file
 
+# All charts in this monorepo
+CHARTS        := strimzi-cluster-instance strimzi-mirrormaker2-instance strimzi-kafka-users
+
 # Chart and versioning configuration
+# CHART controls release targets (build-release, push-release, tag-release, lint).
+# Defaults to strimzi-cluster-instance for the dev workflow.
+CHART         ?= strimzi-cluster-instance
+# Dev workflow hardcodes the cluster chart (Terraform dev env only uses it).
 CHART_NAME    := strimzi-cluster-instance
-CHART_PATH    := ./strimzi-cluster-instance
+CHART_PATH    := ./$(CHART)
 VERSION_FILE  := .version
 # Use existing version if available, otherwise generate new one
 VERSION       := $(shell \
@@ -26,7 +33,7 @@ VERSION       := $(shell \
 CHART_OUTPUT  := .out/$(CHART_NAME)-$(VERSION).tgz
 CHART_REPO    := oci://localhost:5050/dev/charts/
 
-.PHONY: dev build-dev push-dev up up-dev down clean-version clean hostctl release build-release push-release
+.PHONY: dev build-dev push-dev up up-dev down clean-version clean hostctl release build-release push-release tag-release lint lint-all
 
 ## Build and push the chart (development workflow)
 dev: build-dev push-dev
@@ -108,24 +115,47 @@ clean:
 hostctl:
 	sudo hostctl add domains kafka to.strimzi.gateway.api.test broker-0.strimzi.gateway.api.test broker-1.strimzi.gateway.api.test broker-2.strimzi.gateway.api.test bootstrap.strimzi.gateway.api.test
 
-## Package the Helm chart for production release (requires RELEASE_VERSION)
+## Package the Helm chart for production release (requires RELEASE_VERSION and CHART)
 build-release:
 	@if [ -z "$(RELEASE_VERSION)" ]; then \
 		echo "❌ Error: RELEASE_VERSION is required for production builds"; \
-		echo "Usage: make build-release RELEASE_VERSION=1.0.0"; \
+		echo "Usage: make build-release CHART=strimzi-cluster-instance RELEASE_VERSION=1.0.0"; \
 		exit 1; \
 	fi
 	mkdir -p .out
 	helm package $(CHART_PATH) --version $(RELEASE_VERSION) --destination .out
-	@echo "✅ Built chart: .out/$(CHART_NAME)-$(RELEASE_VERSION).tgz"
+	@echo "✅ Built chart: .out/$(CHART)-$(RELEASE_VERSION).tgz"
 
-## Push the chart to GitHub Container Registry (requires RELEASE_VERSION)
+## Push the chart to GitHub Container Registry (requires RELEASE_VERSION and CHART)
 push-release:
 	@if [ -z "$(RELEASE_VERSION)" ]; then \
 		echo "❌ Error: RELEASE_VERSION is required for production releases"; \
-		echo "Usage: make push-release RELEASE_VERSION=1.0.0"; \
+		echo "Usage: make push-release CHART=strimzi-cluster-instance RELEASE_VERSION=1.0.0"; \
 		exit 1; \
 	fi
-	@echo "🚀 Pushing $(CHART_NAME):$(RELEASE_VERSION) to GHCR..."
-	helm push .out/$(CHART_NAME)-$(RELEASE_VERSION).tgz oci://ghcr.io/ryanfaircloth/$(CHART_NAME)
+	@echo "🚀 Pushing $(CHART):$(RELEASE_VERSION) to GHCR..."
+	helm push .out/$(CHART)-$(RELEASE_VERSION).tgz oci://ghcr.io/ryanfaircloth/$(CHART)
+
+## Tag and push a release tag (requires RELEASE_VERSION and CHART)
+## Triggers the matching GitHub Actions release workflow.
+## Example: make tag-release CHART=strimzi-cluster-instance RELEASE_VERSION=1.3.0
+tag-release:
+	@if [ -z "$(RELEASE_VERSION)" ]; then \
+		echo "❌ Error: RELEASE_VERSION is required"; \
+		echo "Usage: make tag-release CHART=strimzi-cluster-instance RELEASE_VERSION=1.3.0"; \
+		exit 1; \
+	fi
+	git tag "$(CHART)/v$(RELEASE_VERSION)"
+	git push origin "$(CHART)/v$(RELEASE_VERSION)"
+
+## Lint a single chart (CHART variable, defaults to strimzi-cluster-instance)
+lint:
+	helm lint $(CHART_PATH)
+
+## Lint all charts in the monorepo
+lint-all:
+	@for chart in $(CHARTS); do \
+		echo "──────── Linting $$chart ────────"; \
+		helm lint ./$$chart; \
+	done
 	@echo "✅ Chart published to oci://ghcr.io/ryanfaircloth/$(CHART_NAME):$(RELEASE_VERSION)"

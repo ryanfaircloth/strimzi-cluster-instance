@@ -1,0 +1,141 @@
+# Default values for strimzi-mirrormaker2-instance.
+
+fullnameOverride: ""
+nameOverride: ""
+
+# Default architecture for node affinity.
+# Set to "arm64" or "amd64". Leave empty to omit arch affinity.
+defaultArchitecture: "arm64"
+
+# Number of MirrorMaker2 Connect worker replicas.
+replicas: 2
+
+# Kafka version — must match the source and target cluster versions.
+# When unset, Strimzi uses its own default. Set explicitly to pin the version.
+# kafkaVersion: "3.9.0"
+
+# Alias of the cluster that MirrorMaker2 will WRITE TO (the target).
+# Must match one of clusters[].alias below.
+connectCluster: ""
+
+# Cluster connection details — rendered verbatim into spec.clusters[].
+# At least two entries are required: one source, one target.
+clusters: []
+# Example:
+# clusters:
+#   - alias: source
+#     bootstrapServers: source-cluster-kafka-bootstrap.kafka.svc.cluster.local:9093
+#     authentication:
+#       type: scram-sha-512
+#       username: mirrormaker2-source
+#       passwordSecret:
+#         secretName: mirrormaker2-source
+#         password: password
+#     tls:
+#       trustedCertificates:
+#         - secretName: source-cluster-cluster-ca-cert
+#           certificate: ca.crt
+#   - alias: target
+#     bootstrapServers: kafka-bootstrap.kafka.svc.cluster.local:9093
+#     authentication:
+#       type: scram-sha-512
+#       username: mirrormaker2-target
+#       passwordSecret:
+#         secretName: mirrormaker2-target
+#         password: password
+#     tls:
+#       trustedCertificates:
+#         - secretName: kafka-cluster-ca-cert
+#           certificate: ca.crt
+
+# Mirror definitions — rendered verbatim into spec.mirrors[].
+mirrors: []
+# Example:
+# mirrors:
+#   - sourceCluster: source
+#     targetCluster: target
+#     sourceConnector:
+#       config:
+#         replication.factor: "3"
+#         offset-syncs.topic.replication.factor: "3"
+#         sync.topic.acls.enabled: "false"
+#         # Use IdentityReplicationPolicy to keep topic names unchanged on target.
+#         replication.policy.class: "org.apache.kafka.connect.mirror.IdentityReplicationPolicy"
+#         replication.policy.separator: ""
+#     heartbeatConnector:
+#       config:
+#         heartbeats.topic.replication.factor: "3"
+#     checkpointConnector:
+#       config:
+#         checkpoints.topic.replication.factor: "3"
+#         sync.group.offsets.enabled: "true"
+#     topicsPattern: ".*"
+#     groupsPattern: ".*"
+
+resources:
+  requests:
+    memory: "1Gi"
+    cpu: "500m"
+  # limits:
+  #   memory: "2Gi"
+  #   cpu: "1"
+
+jvmOptions:
+  "-Xms": "512m"
+  "-Xmx": "512m"
+  gcLoggingEnabled: false
+  "-XX":
+    MaxGCPauseMillis: "20"
+    InitiatingHeapOccupancyPercent: "35"
+    ExplicitGCInvokesConcurrent: "true"
+
+# metricsConfig — enables Prometheus scraping on MirrorMaker2 pods.
+# When non-empty, a PodMonitor is also created (requires Prometheus Operator).
+# Example:
+#   metricsConfig:
+#     type: strimziMetricsReporter
+#     values:
+#       allowList:
+#         - "kafka_connect.*"
+#         - "kafka_producer.*"
+#         - "kafka_consumer.*"
+metricsConfig: {}
+
+podMonitor:
+  # Prometheus Operator namespace selector.
+  namespaceSelector:
+    any: true
+  interval: "30s"
+  portName: "tcp-prometheus"
+  additionalLabels: {}
+
+# logging — inline Strimzi logging spec. When non-empty takes full precedence.
+# Set to {} to use the log4j2Properties ConfigMap below.
+logging: {}
+
+# log4j2Properties — generates a ConfigMap for JSON structured logging.
+# Set to "" to disable and use Strimzi built-in defaults.
+log4j2Properties: |
+  name=COConfig
+  monitorInterval=30
+
+  appender.console.type=Console
+  appender.console.name=STDOUT
+  appender.console.layout.type=JsonTemplateLayout
+
+  rootLogger.level=INFO
+  rootLogger.appenderRefs=stdout
+  rootLogger.appenderRef.stdout.ref=STDOUT
+
+# Additional match expressions to add to the default node affinity.
+additionalNodeMatchExpressions: []
+
+template:
+  pod:
+    affinity: {}
+    tolerations: []
+    topologySpreadConstraints: []
+    priorityClassName: ""
+
+additionalAnnotations: {}
+additionalLabels: {}

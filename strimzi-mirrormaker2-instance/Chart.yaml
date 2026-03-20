@@ -1,0 +1,11 @@
+apiVersion: v2
+name: strimzi-mirrormaker2-instance
+description: A Helm chart for deploying a Strimzi KafkaMirrorMaker2 instance
+
+type: application
+
+# Increment independently of strimzi-cluster-instance.
+version: 1.0.0
+
+# Reflects the minimum supported Strimzi operator version.
+appVersion: "0.45.0"

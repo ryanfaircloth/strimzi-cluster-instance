@@ -1,0 +1,25 @@
+{{- if and .Values.metricsConfig (not (empty .Values.metricsConfig)) }}
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: {{ include "strimzi-mirrormaker2-instance.fullname" . }}
+  labels:
+    {{- include "strimzi-mirrormaker2-instance.labels" . | nindent 4 }}
+    {{- with .Values.podMonitor.additionalLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  namespaceSelector:
+    {{- toYaml .Values.podMonitor.namespaceSelector | nindent 4 }}
+  selector:
+    matchLabels:
+      strimzi.io/cluster: {{ include "strimzi-mirrormaker2-instance.fullname" . }}
+      strimzi.io/kind: KafkaMirrorMaker2
+  podMetricsEndpoints:
+    - port: {{ .Values.podMonitor.portName | default "tcp-prometheus" }}
+      interval: {{ .Values.podMonitor.interval | default "30s" }}
+      path: /metrics
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_namespace]
+          targetLabel: kafka_namespace
+{{- end }}

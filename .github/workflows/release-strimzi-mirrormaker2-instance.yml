@@ -1,0 +1,14 @@
+name: Release strimzi-mirrormaker2-instance
+
+on:
+  push:
+    tags:
+      - 'strimzi-mirrormaker2-instance/v*'
+
+jobs:
+  release:
+    uses: ./.github/workflows/helm-chart-release.yml
+    with:
+      chart-name: strimzi-mirrormaker2-instance
+      chart-path: ./strimzi-mirrormaker2-instance
+    secrets: inherit

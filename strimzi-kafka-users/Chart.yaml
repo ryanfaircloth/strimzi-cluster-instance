@@ -1,0 +1,6 @@
+apiVersion: v2
+name: strimzi-kafka-users
+description: A Helm chart for managing Strimzi KafkaUser resources
+type: application
+version: 1.0.0
+appVersion: "0.45.0"

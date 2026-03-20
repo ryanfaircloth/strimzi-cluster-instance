@@ -1,0 +1,29 @@
+{{- if not .Values.clusterName }}
+  {{- fail "strimzi-kafka-users: .Values.clusterName must be set to the target Kafka cluster name" }}
+{{- end }}
+{{- range .Values.users }}
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: {{ .name | quote }}
+  labels:
+    strimzi.io/cluster: {{ $.Values.clusterName | quote }}
+    {{- include "strimzi-kafka-users.labels" $ | nindent 4 }}
+    {{- with .additionalLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .additionalAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .authentication }}
+  authentication:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .authorization }}
+  authorization:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

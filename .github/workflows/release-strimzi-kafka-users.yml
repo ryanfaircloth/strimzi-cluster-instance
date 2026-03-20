@@ -1,0 +1,14 @@
+name: Release strimzi-kafka-users
+
+on:
+  push:
+    tags:
+      - 'strimzi-kafka-users/v*'
+
+jobs:
+  release:
+    uses: ./.github/workflows/helm-chart-release.yml
+    with:
+      chart-name: strimzi-kafka-users
+      chart-path: ./strimzi-kafka-users
+    secrets: inherit

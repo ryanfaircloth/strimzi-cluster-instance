@@ -1,0 +1,11 @@
+{{- if .Values.log4j2Properties }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "strimzi-mirrormaker2-instance.fullname" . }}-logging
+  labels:
+    {{- include "strimzi-mirrormaker2-instance.labels" . | nindent 4 }}
+data:
+  log4j2.properties: |
+{{ .Values.log4j2Properties | indent 4 }}
+{{- end }}
