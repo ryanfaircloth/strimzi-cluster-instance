@@ -1,67 +1,67 @@
 name: Release Helm Chart (Reusable)
 
 on:
-  workflow_call:
-    inputs:
-      chart-name:
-        description: "Name of the Helm chart (must match directory and OCI repository name)"
-        required: true
-        type: string
-      chart-path:
-        description: "Path to the chart directory relative to the repository root"
-        required: true
-        type: string
+    workflow_call:
+        inputs:
+            chart-name:
+                description: "Name of the Helm chart (must match directory and OCI repository name)"
+                required: true
+                type: string
+            chart-path:
+                description: "Path to the chart directory relative to the repository root"
+                required: true
+                type: string
+            version:
+                description: "Semver version to publish (read from Chart.yaml by the caller)"
+                required: true
+                type: string
 
 env:
-  REGISTRY: ghcr.io
+    REGISTRY: ghcr.io
 
 jobs:
-  release-chart:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
+    release-chart:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+            packages: write
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
 
-      - name: Set up Helm
-        uses: azure/setup-helm@v4
-        with:
-          version: '3.14.0'
+            - name: Set up Helm
+              uses: azure/setup-helm@v4
+              with:
+                  version: "3.14.0"
 
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+            - name: Log in to GitHub Container Registry
+              uses: docker/login-action@v3
+              with:
+                  registry: ${{ env.REGISTRY }}
+                  username: ${{ github.actor }}
+                  password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract version from tag
-        id: version
-        run: |
-          # Tag format: <chart-name>/v<semver>  e.g.  strimzi-cluster-instance/v1.3.0
-          # Strip everything up to and including the /v prefix to get a bare semver.
-          VERSION="${GITHUB_REF_NAME#*/v}"
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "Publishing chart=${{ inputs.chart-name }} version=${VERSION}"
+            - name: Package Helm chart
+              run: |
+                  mkdir -p .out
+                  helm package "${{ inputs.chart-path }}" \
+                    --version "${{ inputs.version }}" \
+                    --destination .out
 
-      - name: Package Helm chart
-        run: |
-          mkdir -p .out
-          helm package "${{ inputs.chart-path }}" \
-            --version "${{ steps.version.outputs.version }}" \
-            --destination .out
+            - name: Push Helm chart to GHCR
+              run: |
+                  CHART_PACKAGE=".out/${{ inputs.chart-name }}-${{ inputs.version }}.tgz"
+                  CHART_REPO="oci://${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ inputs.chart-name }}"
+                  echo "Pushing ${CHART_PACKAGE} to ${CHART_REPO}"
+                  helm push "${CHART_PACKAGE}" "${CHART_REPO}"
 
-      - name: Push Helm chart to GHCR
-        run: |
-          CHART_PACKAGE=".out/${{ inputs.chart-name }}-${{ steps.version.outputs.version }}.tgz"
-          CHART_REPO="oci://${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ inputs.chart-name }}"
-          echo "Pushing ${CHART_PACKAGE} to ${CHART_REPO}"
-          helm push "${CHART_PACKAGE}" "${CHART_REPO}"
-
-      - name: Verify chart publication
-        run: |
-          echo "Chart published: ${{ inputs.chart-name }}:${{ steps.version.outputs.version }}"
-          echo "Registry: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ inputs.chart-name }}"
+            - name: Create GitHub Release and tag
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  TAG="${{ inputs.chart-name }}/v${{ inputs.version }}"
+                  gh release create "${TAG}" \
+                    --title "${{ inputs.chart-name }} v${{ inputs.version }}" \
+                    --notes "Automated release of ${{ inputs.chart-name }} v${{ inputs.version }}" \
+                    --target "${{ github.sha }}"

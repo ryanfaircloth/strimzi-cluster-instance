@@ -1,14 +1,43 @@
 name: Release strimzi-kafka-users
 
 on:
-  push:
-    tags:
-      - 'strimzi-kafka-users/v*'
+    push:
+        branches: [main]
+        paths:
+            - "strimzi-kafka-users/**"
 
 jobs:
-  release:
-    uses: ./.github/workflows/helm-chart-release.yml
-    with:
-      chart-name: strimzi-kafka-users
-      chart-path: ./strimzi-kafka-users
-    secrets: inherit
+    check:
+        runs-on: ubuntu-latest
+        outputs:
+            changed: ${{ steps.diff.outputs.changed }}
+            version: ${{ steps.diff.outputs.version }}
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 2
+
+            - name: Detect version change in Chart.yaml
+              id: diff
+              run: |
+                  CURRENT=$(grep '^version:' strimzi-kafka-users/Chart.yaml | awk '{print $2}')
+                  PREVIOUS=$(git show HEAD~1:strimzi-kafka-users/Chart.yaml 2>/dev/null \
+                    | grep '^version:' | awk '{print $2}' || echo "")
+                  echo "version=${CURRENT}" >> "$GITHUB_OUTPUT"
+                  if [ "${CURRENT}" != "${PREVIOUS}" ]; then
+                    echo "changed=true" >> "$GITHUB_OUTPUT"
+                    echo "Version changed: ${PREVIOUS} -> ${CURRENT}"
+                  else
+                    echo "changed=false" >> "$GITHUB_OUTPUT"
+                    echo "Version unchanged (${CURRENT}), skipping release"
+                  fi
+
+    release:
+        needs: check
+        if: needs.check.outputs.changed == 'true'
+        uses: ./.github/workflows/helm-chart-release.yml
+        with:
+            chart-name: strimzi-kafka-users
+            chart-path: ./strimzi-kafka-users
+            version: ${{ needs.check.outputs.version }}
+        secrets: inherit

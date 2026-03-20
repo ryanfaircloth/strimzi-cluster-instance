@@ -115,47 +115,52 @@ make clean
 
 ## Release Process
 
-This project uses automated releases to publish Helm charts to GitHub Container Registry (GHCR).
+This monorepo contains three independently versioned Helm charts, each published to GitHub Container Registry (GHCR) via CI:
 
-### Automated Releases (Recommended)
+| Chart | OCI path |
+|---|---|
+| `strimzi-cluster-instance` | `oci://ghcr.io/ryanfaircloth/strimzi-cluster-instance` |
+| `strimzi-mirrormaker2-instance` | `oci://ghcr.io/ryanfaircloth/strimzi-mirrormaker2-instance` |
+| `strimzi-kafka-users` | `oci://ghcr.io/ryanfaircloth/strimzi-kafka-users` |
 
-1. **Create a GitHub Release**: Go to the [Releases page](https://github.com/ryanfaircloth/strimzi-cluster-instance/releases) and create a new release
-2. **Tag Format**: Use semantic versioning (e.g., `v1.0.0`, `v1.2.3`)
-3. **Automated Publishing**: GitHub Actions will automatically build and publish the Helm chart to GHCR
+> **Charts are always built and published by CI. There are no manual release steps.**
 
-The chart will be available at:
-```
-oci://ghcr.io/ryanfaircloth/strimzi-cluster-instance
-```
+### How it works
 
-### Manual Release (Advanced)
+Each chart has a dedicated GitHub Actions workflow that watches for pushes to `main` that touch that chart's directory. When a push is detected, CI compares the `version:` field in `Chart.yaml` against the previous commit. If the version has changed, CI automatically:
 
-For manual releases, you can use the Makefile:
+1. Packages the chart at the new version
+2. Pushes it to GHCR
+3. Creates a git tag (`<chart-name>/v<version>`) and a GitHub Release
+
+| Files changed on `main` | Workflow triggered |
+|---|---|
+| `strimzi-cluster-instance/**` | `release-strimzi-cluster-instance.yml` |
+| `strimzi-mirrormaker2-instance/**` | `release-strimzi-mirrormaker2-instance.yml` |
+| `strimzi-kafka-users/**` | `release-strimzi-kafka-users.yml` |
+
+If the version in `Chart.yaml` is **not** changed, the workflow runs but skips the release job — safe to push chart changes without triggering a release simply by leaving the version unchanged.
+
+### Releasing a chart
+
+1. Make your changes to the chart.
+2. Bump `version:` in the chart's `Chart.yaml` to the next semver.
+3. Commit and open a PR (or push directly to `main`).
+4. Merge to `main` — CI handles the rest.
+
+That's it. No tagging. No `helm push`. No local build.
+
+### Using published charts
 
 ```bash
-# Build and push a specific version to GHCR
-make release RELEASE_VERSION=1.0.0
+# Install a specific version
+helm install my-kafka \
+  oci://ghcr.io/ryanfaircloth/strimzi-cluster-instance \
+  --version 1.3.0
 
-# Or individually:
-make build-release RELEASE_VERSION=1.0.0
-make push-release RELEASE_VERSION=1.0.0
-```
-
-**Note**: Manual releases require GHCR authentication (`helm registry login ghcr.io`)
-
-### Using Published Charts
-
-Install the published chart from GHCR:
-
-```bash
-# Install latest version
-helm install my-kafka oci://ghcr.io/ryanfaircloth/strimzi-cluster-instance
-
-# Install specific version
-helm install my-kafka oci://ghcr.io/ryanfaircloth/strimzi-cluster-instance --version 1.0.0
-
-# Pull chart for local inspection
-helm pull oci://ghcr.io/ryanfaircloth/strimzi-cluster-instance --version 1.0.0
+# Inspect before installing
+helm pull oci://ghcr.io/ryanfaircloth/strimzi-cluster-instance --version 1.3.0
+helm show values oci://ghcr.io/ryanfaircloth/strimzi-cluster-instance --version 1.3.0
 ```
 
 ### Customizing the Kafka Cluster
