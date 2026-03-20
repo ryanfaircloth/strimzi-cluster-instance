@@ -16,17 +16,59 @@ on:
                 required: true
                 type: string
 
+env:
+    REGISTRY: ghcr.io
+
 jobs:
-    tag:
+    release:
         runs-on: ubuntu-latest
         permissions:
             contents: write
+            packages: write
         steps:
             - name: Checkout repository
               uses: actions/checkout@v4
 
-            - name: Create and push tag
+            - name: Create and push release tag
               run: |
+                  git config user.name "github-actions[bot]"
+                  git config user.email "github-actions[bot]@users.noreply.github.com"
                   TAG="${{ inputs.chart }}/v${{ inputs.version }}"
                   git tag "${TAG}"
                   git push origin "${TAG}"
+
+            - name: Set up Helm
+              uses: azure/setup-helm@v4
+              with:
+                  version: "3.14.0"
+
+            - name: Log in to GitHub Container Registry
+              uses: docker/login-action@v3
+              with:
+                  registry: ${{ env.REGISTRY }}
+                  username: ${{ github.actor }}
+                  password: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Package Helm chart
+              run: |
+                  mkdir -p .out
+                  helm package "./${{ inputs.chart }}" \
+                    --version "${{ inputs.version }}" \
+                    --destination .out
+
+            - name: Push Helm chart to GHCR
+              run: |
+                  CHART_PACKAGE=".out/${{ inputs.chart }}-${{ inputs.version }}.tgz"
+                  CHART_REPO="oci://${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ inputs.chart }}"
+                  echo "Pushing ${CHART_PACKAGE} to ${CHART_REPO}"
+                  helm push "${CHART_PACKAGE}" "${CHART_REPO}"
+
+            - name: Create GitHub Release
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  TAG="${{ inputs.chart }}/v${{ inputs.version }}"
+                  gh release create "${TAG}" \
+                    --title "${{ inputs.chart }} v${{ inputs.version }}" \
+                    --notes "Release of ${{ inputs.chart }} v${{ inputs.version }}" \
+                    --target "${{ github.sha }}"
