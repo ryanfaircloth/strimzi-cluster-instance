@@ -3,7 +3,7 @@
 {{- $rebalanceName := printf "%s-periodic" $fullname }}
 {{- $namespace := .Release.Namespace }}
 ---
-apiVersion: kafka.strimzi.io/v1beta2
+apiVersion: kafka.strimzi.io/v1
 kind: KafkaRebalance
 metadata:
   name: {{ $rebalanceName }}

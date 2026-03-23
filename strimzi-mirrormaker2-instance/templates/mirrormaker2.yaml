@@ -7,7 +7,7 @@
 {{- if not .Values.connectCluster }}
   {{- fail "strimzi-mirrormaker2-instance: .Values.connectCluster must be set to the alias of the target cluster" }}
 {{- end }}
-apiVersion: kafka.strimzi.io/v1beta2
+apiVersion: kafka.strimzi.io/v1
 kind: KafkaMirrorMaker2
 metadata:
   name: {{ include "strimzi-mirrormaker2-instance.fullname" . }}
