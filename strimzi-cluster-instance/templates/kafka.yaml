@@ -61,6 +61,19 @@ spec:
           {{- end }}
           createBootstrapService: true
       {{- end }}
+      {{- if .Values.kafka.listeners.lbext.enabled }}
+      - name: lbext
+        port: {{ .Values.kafka.listeners.lbext.port }}
+        type: loadbalancer
+        tls: true
+        authentication:
+          type: {{ .Values.kafka.listeners.lbext.authentication.type }}
+        configuration:
+          bootstrap:
+            annotations:
+              {{- toYaml .Values.kafka.listeners.lbext.configuration.annotations | nindent 14 }}
+          brokers: []
+      {{- end }}
       {{- if .Values.kafka.listeners.oauth.enabled }}
       - name: oauth
         port: {{ .Values.kafka.listeners.oauth.port }}
