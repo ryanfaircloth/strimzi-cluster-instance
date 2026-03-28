@@ -274,7 +274,7 @@ kafka:
       authentication:
         type: scram-sha-512
       configuration:
-        annotations: {} # applied to both bootstrap and per-broker Services; set cloud-provider-specific annotations at deploy time
+        annotations: {} # applied to bootstrap Service and all per-broker Services; set cloud-provider-specific annotations at deploy time
   metadataVersion: null
   rack:
     topologyKey: topology.kubernetes.io/zone

@@ -72,7 +72,18 @@ spec:
           bootstrap:
             annotations:
               {{- toYaml .Values.kafka.listeners.lbext.configuration.annotations | nindent 14 }}
-          brokers: []
+          {{- $lbextBrokerReplicas := 0 }}
+          {{- range .Values.nodePools }}
+            {{- if has "broker" .roles }}
+              {{- $lbextBrokerReplicas = .replicas }}
+            {{- end }}
+          {{- end }}
+          brokers:
+          {{- range $i := until (int $lbextBrokerReplicas) }}
+          - broker: {{ $i }}
+            annotations:
+              {{- toYaml $.Values.kafka.listeners.lbext.configuration.annotations | nindent 14 }}
+          {{- end }}
       {{- end }}
       {{- if .Values.kafka.listeners.oauth.enabled }}
       - name: oauth
