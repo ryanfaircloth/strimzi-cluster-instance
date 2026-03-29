@@ -155,8 +155,18 @@ spec:
   resources:
     {{- toYaml . | nindent 4 }}
   {{- end }}
+  {{- if and (has "broker" .roles) $.Values.kafka.listeners.oauth.enabled }}
+  jvmOptions:
+    {{- with .jvmOptions }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    javaSystemProperties:
+      - name: org.apache.kafka.sasl.oauthbearer.allowed.urls
+        value: "{{ $.Values.kafka.listeners.oauth.jwksEndpointUri }},{{ $.Values.kafka.listeners.oauth.validIssuerUri }}"
+  {{- else }}
   {{- with .jvmOptions }}
   jvmOptions:
     {{- toYaml . | nindent 4 }}
+  {{- end }}
   {{- end }}
 {{- end }}
