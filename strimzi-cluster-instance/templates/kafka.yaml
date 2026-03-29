@@ -95,7 +95,7 @@ spec:
           sasl: true
           listenerConfig:
             sasl.enabled.mechanisms: OAUTHBEARER
-            oauthbearer.sasl.server.callback.handler.class: org.apache.kafka.common.security.oauthbearer.secured.OAuthBearerValidatorCallbackHandler
+            oauthbearer.sasl.server.callback.handler.class: org.apache.kafka.common.security.oauthbearer.OAuthBearerValidatorCallbackHandler
             oauthbearer.sasl.jaas.config: "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required;"
             sasl.oauthbearer.jwks.endpoint.url: {{ required "kafka.listeners.oauth.jwksEndpointUri is required when oauth is enabled" .Values.kafka.listeners.oauth.jwksEndpointUri | quote }}
             sasl.oauthbearer.expected.issuer: {{ required "kafka.listeners.oauth.validIssuerUri is required when oauth is enabled" .Values.kafka.listeners.oauth.validIssuerUri | quote }}
