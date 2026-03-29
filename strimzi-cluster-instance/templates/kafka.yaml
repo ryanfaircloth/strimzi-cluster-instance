@@ -91,19 +91,35 @@ spec:
         tls: true
         type: {{ .Values.kafka.listeners.oauth.type | default "internal" }}
         authentication:
-          type: oauth
-          validIssuerUri: {{ required "kafka.listeners.oauth.validIssuerUri is required when oauth is enabled" .Values.kafka.listeners.oauth.validIssuerUri | quote }}
-          jwksEndpointUri: {{ required "kafka.listeners.oauth.jwksEndpointUri is required when oauth is enabled" .Values.kafka.listeners.oauth.jwksEndpointUri | quote }}
-          userNameClaim: {{ .Values.kafka.listeners.oauth.userNameClaim | quote }}
-          {{- if .Values.kafka.listeners.oauth.groupsClaim }}
-          groupsClaim: {{ .Values.kafka.listeners.oauth.groupsClaim | quote }}
+          type: custom
+          sasl: true
+          listenerConfig:
+            sasl.enabled.mechanisms: OAUTHBEARER
+            oauthbearer.sasl.server.callback.handler.class: org.apache.kafka.common.security.oauthbearer.secured.OAuthBearerValidatorCallbackHandler
+            oauthbearer.sasl.jaas.config: "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required;"
+            sasl.oauthbearer.jwks.endpoint.url: {{ required "kafka.listeners.oauth.jwksEndpointUri is required when oauth is enabled" .Values.kafka.listeners.oauth.jwksEndpointUri | quote }}
+            sasl.oauthbearer.expected.issuer: {{ required "kafka.listeners.oauth.validIssuerUri is required when oauth is enabled" .Values.kafka.listeners.oauth.validIssuerUri | quote }}
+            {{- if .Values.kafka.listeners.oauth.maxSecondsWithoutReauthentication }}
+            oauthbearer.connections.max.reauth.ms: {{ mul (.Values.kafka.listeners.oauth.maxSecondsWithoutReauthentication | int) 1000 }}
+            {{- end }}
+        {{- if eq (.Values.kafka.listeners.oauth.type | default "internal") "loadbalancer" }}
+        configuration:
+          bootstrap:
+            annotations:
+              {{- toYaml .Values.kafka.listeners.oauth.configuration.annotations | nindent 14 }}
+          {{- $oauthBrokerReplicas := 0 }}
+          {{- range .Values.nodePools }}
+            {{- if has "broker" .roles }}
+              {{- $oauthBrokerReplicas = .replicas }}
+            {{- end }}
           {{- end }}
-          maxSecondsWithoutReauthentication: {{ .Values.kafka.listeners.oauth.maxSecondsWithoutReauthentication }}
-          checkAccessTokenType: {{ .Values.kafka.listeners.oauth.checkAccessTokenType }}
-          {{- with .Values.kafka.listeners.oauth.tlsTrustedCertificates }}
-          tlsTrustedCertificates:
-            {{- toYaml . | nindent 10 }}
+          brokers:
+          {{- range $i := until (int $oauthBrokerReplicas) }}
+          - broker: {{ $i }}
+            annotations:
+              {{- toYaml $.Values.kafka.listeners.oauth.configuration.annotations | nindent 14 }}
           {{- end }}
+        {{- end }}
       {{- end }}
 
     {{- if and .Values.kafka.metricsConfig (not (empty .Values.kafka.metricsConfig)) }}
