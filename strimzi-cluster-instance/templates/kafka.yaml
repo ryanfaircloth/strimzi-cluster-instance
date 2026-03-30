@@ -99,6 +99,9 @@ spec:
             oauthbearer.sasl.jaas.config: "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required;"
             sasl.oauthbearer.jwks.endpoint.url: {{ required "kafka.listeners.oauth.jwksEndpointUri is required when oauth is enabled" .Values.kafka.listeners.oauth.jwksEndpointUri | quote }}
             sasl.oauthbearer.expected.issuer: {{ required "kafka.listeners.oauth.validIssuerUri is required when oauth is enabled" .Values.kafka.listeners.oauth.validIssuerUri | quote }}
+            {{- if .Values.kafka.listeners.oauth.expectedAudience }}
+            sasl.oauthbearer.expected.audience: {{ .Values.kafka.listeners.oauth.expectedAudience | quote }}
+            {{- end }}
             {{- if .Values.kafka.listeners.oauth.maxSecondsWithoutReauthentication }}
             oauthbearer.connections.max.reauth.ms: {{ mul (.Values.kafka.listeners.oauth.maxSecondsWithoutReauthentication | int) 1000 }}
             {{- end }}

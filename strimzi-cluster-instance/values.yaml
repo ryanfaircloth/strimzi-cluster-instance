@@ -258,6 +258,10 @@ kafka:
       groupsClaim: ""
       # Token re-authentication interval in seconds. 0 disables re-auth.
       maxSecondsWithoutReauthentication: 3600
+      # Expected audience value in JWT aud claim. Required when the OIDC provider
+      # includes an aud claim in tokens (e.g. authentik client_credentials issues
+      # aud=<client_id>). Leave empty to skip audience validation (not recommended).
+      expectedAudience: ""
       # Set true only when the OIDC provider does NOT include `typ: Bearer` in the
       # token header. authentik and Keycloak set this correctly; leave false.
       checkAccessTokenType: false
