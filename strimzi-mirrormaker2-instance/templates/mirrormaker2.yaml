@@ -98,3 +98,8 @@ spec:
       {{- if .Values.template.pod.priorityClassName }}
       priorityClassName: {{ .Values.template.pod.priorityClassName | quote }}
       {{- end }}
+    {{- if and .Values.template.connectContainer .Values.template.connectContainer.env }}
+    connectContainer:
+      env:
+        {{- toYaml .Values.template.connectContainer.env | nindent 8 }}
+    {{- end }}

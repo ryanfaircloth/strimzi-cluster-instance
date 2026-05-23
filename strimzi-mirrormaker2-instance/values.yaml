@@ -135,6 +135,8 @@ template:
     tolerations: []
     topologySpreadConstraints: []
     priorityClassName: ""
+  connectContainer:
+    env: []
 
 additionalAnnotations: {}
 additionalLabels: {}
