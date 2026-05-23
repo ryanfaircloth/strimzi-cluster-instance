@@ -101,18 +101,20 @@ spec:
                         - {{ include "strimzi-cluster-instance.fullname" $ }}
                     - key: app.kubernetes.io/component
                       operator: Exists
+                    {{- $componentLabel := "" }}
+                    {{- with .template.pod.metadata }}
+                      {{- with .labels }}
+                        {{- with (index . "app.kubernetes.io/component") }}
+                          {{- $componentLabel = . }}
+                        {{- end }}
+                      {{- end }}
+                    {{- end }}
+                    {{- if $componentLabel }}
                     - key: app.kubernetes.io/component
                       operator: NotIn
                       values:
-                        {{- range $.Values.nodePools }}
-                        {{- if eq .name $poolName }}
-                        {{- with .template.pod.metadata.labels }}
-                        {{- with (index . "app.kubernetes.io/component") }}
-                        - {{ . }}
-                        {{- end }}
-                        {{- end }}
-                        {{- end }}
-                        {{- end }}
+                        - {{ $componentLabel }}
+                    {{- end }}
                 topologyKey: "kubernetes.io/hostname"
       {{- end }}
       {{- with .template.pod.tolerations }}
@@ -133,10 +135,10 @@ spec:
               strimzi.io/pool-name: {{ include "strimzi-cluster-instance.fullname" $ }}-{{ $poolName }}
       {{- end }}
       {{- if .template.pod.priorityClassName }}
-      priorityClassName: {{ .priorityClassName }}
+      priorityClassName: {{ .template.pod.priorityClassName }}
       {{- end }}
       {{- if .template.pod.tmpDirSizeLimit }}
-      tmpDirSizeLimit: {{ .tmpDirSizeLimit }}
+      tmpDirSizeLimit: {{ .template.pod.tmpDirSizeLimit }}
       {{- end }}
       {{- with .template.pod.volumes }}
       volumes:
