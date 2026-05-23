@@ -1,14 +1,61 @@
 name: Release strimzi-mirrormaker2-instance
 
 on:
-    push:
-        tags:
-            - "strimzi-mirrormaker2-instance/v*"
+  push:
+    tags:
+      - "strimzi-mirrormaker2-instance/v*"
+
+env:
+  REGISTRY: ghcr.io
 
 jobs:
-    release:
-        uses: ./.github/workflows/helm-chart-release.yml
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
         with:
-            chart-name: strimzi-mirrormaker2-instance
-            chart-path: ./strimzi-mirrormaker2-instance
-        secrets: inherit
+          version: "3.14.0"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION="${GITHUB_REF_NAME#*/v}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Package Helm chart
+        run: |
+          mkdir -p .out
+          helm package "./strimzi-mirrormaker2-instance" \
+            --version "${{ steps.version.outputs.version }}" \
+            --destination .out
+
+      - name: Push Helm chart to GHCR
+        run: |
+          CHART_PACKAGE=".out/strimzi-mirrormaker2-instance-${{ steps.version.outputs.version }}.tgz"
+          CHART_REPO="oci://${{ env.REGISTRY }}/${{ github.repository_owner }}/strimzi-mirrormaker2-instance"
+          echo "Pushing ${CHART_PACKAGE} to ${CHART_REPO}"
+          helm push "${CHART_PACKAGE}" "${CHART_REPO}"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            --title "strimzi-mirrormaker2-instance v${{ steps.version.outputs.version }}" \
+            --notes "Release of strimzi-mirrormaker2-instance v${{ steps.version.outputs.version }}" \
+            --target "${{ github.sha }}"
