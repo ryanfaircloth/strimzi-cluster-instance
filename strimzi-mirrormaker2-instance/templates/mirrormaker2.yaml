@@ -1,11 +1,26 @@
-{{- if not .Values.clusters }}
-  {{- fail "strimzi-mirrormaker2-instance: .Values.clusters must be a non-empty list" }}
-{{- end }}
 {{- if not .Values.mirrors }}
   {{- fail "strimzi-mirrormaker2-instance: .Values.mirrors must be a non-empty list" }}
 {{- end }}
-{{- if not .Values.connectCluster }}
-  {{- fail "strimzi-mirrormaker2-instance: .Values.connectCluster must be set to the alias of the target cluster" }}
+{{- if not .Values.target }}
+  {{- fail "strimzi-mirrormaker2-instance: .Values.target must be set" }}
+{{- end }}
+{{- if not .Values.target.alias }}
+  {{- fail "strimzi-mirrormaker2-instance: .Values.target.alias must be set" }}
+{{- end }}
+{{- if not .Values.target.bootstrapServers }}
+  {{- fail "strimzi-mirrormaker2-instance: .Values.target.bootstrapServers must be set" }}
+{{- end }}
+{{- if not .Values.target.groupId }}
+  {{- fail "strimzi-mirrormaker2-instance: .Values.target.groupId must be set" }}
+{{- end }}
+{{- if not .Values.target.configStorageTopic }}
+  {{- fail "strimzi-mirrormaker2-instance: .Values.target.configStorageTopic must be set" }}
+{{- end }}
+{{- if not .Values.target.offsetStorageTopic }}
+  {{- fail "strimzi-mirrormaker2-instance: .Values.target.offsetStorageTopic must be set" }}
+{{- end }}
+{{- if not .Values.target.statusStorageTopic }}
+  {{- fail "strimzi-mirrormaker2-instance: .Values.target.statusStorageTopic must be set" }}
 {{- end }}
 apiVersion: kafka.strimzi.io/v1
 kind: KafkaMirrorMaker2
@@ -25,9 +40,8 @@ spec:
   {{- if .Values.kafkaVersion }}
   version: {{ .Values.kafkaVersion | quote }}
   {{- end }}
-  connectCluster: {{ .Values.connectCluster | quote }}
-  clusters:
-    {{- toYaml .Values.clusters | nindent 4 }}
+  target:
+    {{- toYaml .Values.target | nindent 4 }}
   mirrors:
     {{- toYaml .Values.mirrors | nindent 4 }}
   resources:

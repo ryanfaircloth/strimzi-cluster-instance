@@ -14,46 +14,45 @@ replicas: 2
 # When unset, Strimzi uses its own default. Set explicitly to pin the version.
 # kafkaVersion: "3.9.0"
 
-# Alias of the cluster that MirrorMaker2 will WRITE TO (the target).
-# Must match one of clusters[].alias below.
-connectCluster: ""
-
-# Cluster connection details — rendered verbatim into spec.clusters[].
-# At least two entries are required: one source, one target.
-clusters: []
+# Target cluster connection details — rendered verbatim into spec.target.
+# In the v1 API, MirrorMaker2 requires the target internal topic settings.
+target: {}
 # Example:
-# clusters:
-#   - alias: source
-#     bootstrapServers: source-cluster-kafka-bootstrap.kafka.svc.cluster.local:9093
-#     authentication:
-#       type: scram-sha-512
-#       username: mirrormaker2-source
-#       passwordSecret:
-#         secretName: mirrormaker2-source
-#         password: password
-#     tls:
-#       trustedCertificates:
-#         - secretName: source-cluster-cluster-ca-cert
-#           certificate: ca.crt
-#   - alias: target
-#     bootstrapServers: kafka-bootstrap.kafka.svc.cluster.local:9093
-#     authentication:
-#       type: scram-sha-512
-#       username: mirrormaker2-target
-#       passwordSecret:
-#         secretName: mirrormaker2-target
-#         password: password
-#     tls:
-#       trustedCertificates:
-#         - secretName: kafka-cluster-ca-cert
-#           certificate: ca.crt
+# target:
+#   alias: target
+#   bootstrapServers: kafka-bootstrap.kafka.svc.cluster.local:9093
+#   groupId: mm2-connect
+#   configStorageTopic: mm2-configs
+#   offsetStorageTopic: mm2-offsets
+#   statusStorageTopic: mm2-status
+#   authentication:
+#     type: scram-sha-512
+#     username: mirrormaker2-target
+#     passwordSecret:
+#       secretName: mirrormaker2-target
+#       password: password
+#   tls:
+#     trustedCertificates:
+#       - secretName: kafka-cluster-ca-cert
+#         certificate: ca.crt
 
 # Mirror definitions — rendered verbatim into spec.mirrors[].
 mirrors: []
 # Example:
 # mirrors:
-#   - sourceCluster: source
-#     targetCluster: target
+#   - source:
+#       alias: source
+#       bootstrapServers: source-cluster-kafka-bootstrap.kafka.svc.cluster.local:9093
+#       authentication:
+#         type: scram-sha-512
+#         username: mirrormaker2-source
+#         passwordSecret:
+#           secretName: mirrormaker2-source
+#           password: password
+#       tls:
+#         trustedCertificates:
+#           - secretName: source-cluster-cluster-ca-cert
+#             certificate: ca.crt
 #     sourceConnector:
 #       config:
 #         replication.factor: "3"
