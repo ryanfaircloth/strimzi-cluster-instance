@@ -274,6 +274,8 @@ kafka:
       #     certificate: ca.crt
       configuration:
         annotations: {} # applied to bootstrap and per-broker Services when type: loadbalancer; set cloud-provider-specific annotations at deploy time
+        bootstrap:
+          alternativeNames: [] # optional SANs for the OAuth bootstrap Service certificate
     lbext: # Enable loadbalancer listener for cross-VPC MirrorMaker2 access (mgmt cluster only)
       enabled: false
       port: 9095 # must not conflict with tls (9093) or tlsext (9094); ensure oauth is disabled when lbext is enabled

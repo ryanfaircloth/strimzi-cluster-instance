@@ -110,6 +110,10 @@ spec:
           bootstrap:
             annotations:
               {{- toYaml .Values.kafka.listeners.oauth.configuration.annotations | nindent 14 }}
+            {{- with .Values.kafka.listeners.oauth.configuration.bootstrap.alternativeNames }}
+            alternativeNames:
+              {{- toYaml . | nindent 14 }}
+            {{- end }}
           {{- $oauthBrokerReplicas := 0 }}
           {{- range .Values.nodePools }}
             {{- if has "broker" .roles }}
