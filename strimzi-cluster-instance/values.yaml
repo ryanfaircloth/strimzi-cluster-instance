@@ -205,11 +205,13 @@ kafka:
     # feature; container runtime containerd >= 2.1 or CRI-O >= 1.33).
     plugin:
       image:
-        # reference: the plugin-only OCI image to mount. Leave "" to use the
+        # reference: the plugin-only OCI image to mount. Prepopulated with the
+        # AWS (S3) plugin image published from this repo (tag <cloud>-<version>).
+        # Override for another cloud/registry, or set "" to use the
         # custom-operand-image method instead (set kafka.image +
-        # remoteStorageManager.classPath).
-        reference: ""
-        # e.g. <registry>/platform/<partition>/kafka-tiered-storage-plugin:2025-03-14
+        # remoteStorageManager.classPath). The tag is kept in sync with the
+        # Aiven release by Renovate (see tiered-storage-plugin/PLUGIN_VERSION).
+        reference: ghcr.io/ryanfaircloth/kafka-tiered-storage-plugin:aws-1.1.1 # datasource=github-releases depName=Aiven-Open/tiered-storage-for-apache-kafka
         pullPolicy: IfNotPresent # Always | Never | IfNotPresent
       # mountPath must live under /mnt (Strimzi mounts additional volumes there).
       # The RSM classPath defaults to "<mountPath>/*" when an image reference is set.

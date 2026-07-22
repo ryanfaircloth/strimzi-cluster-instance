@@ -277,13 +277,19 @@ Disabled by default (`enabled: false`); existing clusters are unaffected.
 
 The RSM plugin can reach the brokers two ways:
 
-**Preferred — image volume (no custom operand build).** Set
-`tieredStorage.plugin.image.reference` to a plugin-only OCI image. The chart
+**Preferred — image volume (no custom operand build).**
+`tieredStorage.plugin.image.reference` points at a plugin-only OCI image; it is
+**prepopulated with the AWS (S3) image** built from this repo (see
+[`tiered-storage-plugin/`](tiered-storage-plugin) — built per cloud, tagged
+`<cloud>-<version>`, and kept in sync with upstream by Renovate). The chart
 mounts it read-only into the broker pods as a Kubernetes image volume (under
 `/mnt`) and auto-derives `classPath` to `<mountPath>/*`. The Strimzi operand
 image stays vanilla, so operand upgrades are just a `kafka.version` bump — no
 rebuild. Requires cluster support for image volumes (the `ImageVolume` feature;
 container runtime containerd ≥ 2.1 or CRI-O ≥ 1.33).
+
+For AWS you only need to enable it and set the backend config — the image
+default already resolves:
 
 ```yaml
 kafka:
