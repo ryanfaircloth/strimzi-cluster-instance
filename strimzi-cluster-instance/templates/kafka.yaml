@@ -15,6 +15,9 @@ metadata:
   name: {{ include "strimzi-cluster-instance.fullname" . }}
 spec:
   kafka:
+    {{- if .Values.kafka.image }}
+    image: {{ .Values.kafka.image }}
+    {{- end }}
     authorization:
       type: {{ .Values.kafka.authorization.type | default "simple" }}
       {{- with .Values.kafka.superUsers }}
@@ -27,6 +30,19 @@ spec:
     {{- with .Values.kafka.config }}
     config:
       {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- if .Values.kafka.tieredStorage.enabled }}
+    tieredStorage:
+      type: custom
+      remoteStorageManager:
+        className: {{ required "kafka.tieredStorage.remoteStorageManager.className is required when tieredStorage is enabled" .Values.kafka.tieredStorage.remoteStorageManager.className }}
+        classPath: {{ required "kafka.tieredStorage.remoteStorageManager.classPath is required when tieredStorage is enabled" .Values.kafka.tieredStorage.remoteStorageManager.classPath }}
+        {{- with .Values.kafka.tieredStorage.config }}
+        config:
+          {{- range $key, $value := . }}
+          {{ $key }}: {{ $value | quote }}
+          {{- end }}
+        {{- end }}
     {{- end }}
     listeners:
       - name: tls

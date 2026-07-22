@@ -160,7 +160,55 @@ kafka:
   #   - User:mirrormaker2
   #   - User:CN=my-service-account
   brokerRackInitImage: null
-  
+
+  # image overrides the Kafka operand container image on the Kafka CR
+  # (spec.kafka.image), applied to all broker and controller pods.
+  # Leave empty ("") to let the Strimzi operator select its default operand
+  # image based on kafka.version (current behavior — recommended unless you
+  # need a custom build).
+  #
+  # A custom image is required for tiered storage (see kafka.tieredStorage):
+  # the stock quay.io/strimzi/kafka image does not bundle the Aiven
+  # tiered-storage plugin on the classpath. Point this at a plugin-bearing
+  # operand build, e.g.:
+  #   image: <registry>/platform/<partition>/strimzi/kafka:0.51.0-kafka-4.2.0-tiered
+  image: ""
+
+  # tieredStorage enables Kafka KIP-405 tiered storage (spec.kafka.tieredStorage)
+  # so closed log segments offload to a remote backend (e.g. S3) and brokers
+  # retain only the hot set on local disk. Tiered storage layers ON TOP of the
+  # existing node-pool persistent-claim volumes — local disk still holds the
+  # hot set, so no change to nodePools[].storage is needed.
+  #
+  # Requirements when enabled:
+  #   - kafka.image must point at an operand build that bundles the RSM plugin
+  #     on the classpath (see kafka.image above).
+  #   - Set `remote.log.storage.system.enable: true` in kafka.config to turn on
+  #     the broker-side remote log subsystem.
+  #   - Enable per-topic with `remote.storage.enable=true` on each topic.
+  tieredStorage:
+    # enabled: false (default) renders no tieredStorage block — existing
+    # clusters are unaffected.
+    enabled: false
+    remoteStorageManager:
+      # RemoteStorageManager implementation class and classpath. Defaults target
+      # the Aiven tiered-storage-for-apache-kafka plugin.
+      className: io.aiven.kafka.tieredstorage.RemoteStorageManager
+      classPath: /opt/kafka/libs/tiered-storage/*
+    # config is a free-form map passed through to the RemoteStorageManager.
+    # Strimzi automatically prefixes each key with `rsm.config.` before adding it
+    # to the broker configuration, so specify keys WITHOUT that prefix here.
+    # Values are rendered as strings. Nothing is hardcoded — set backend, bucket,
+    # region, and chunk/cache tuning as needed.
+    #
+    # Example — Aiven S3 backend:
+    #   config:
+    #     storage.backend.class: io.aiven.kafka.tieredstorage.storage.s3.S3Storage
+    #     storage.s3.bucket.name: partition-kafka-tiered-us-east-2
+    #     storage.s3.region: us-east-2
+    #     chunk.size: "4194304"
+    config: {}
+
   config:
     auto.create.topics.enable: true
     # background threads include replication for very high throughput increase based on available CPU cores and usage default is 10
