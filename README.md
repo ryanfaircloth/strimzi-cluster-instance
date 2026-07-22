@@ -275,24 +275,56 @@ change to `nodePools[].storage` is required.
 
 Disabled by default (`enabled: false`); existing clusters are unaffected.
 
+The RSM plugin can reach the brokers two ways:
+
+**Preferred — image volume (no custom operand build).** Set
+`tieredStorage.plugin.image.reference` to a plugin-only OCI image. The chart
+mounts it read-only into the broker pods as a Kubernetes image volume (under
+`/mnt`) and auto-derives `classPath` to `<mountPath>/*`. The Strimzi operand
+image stays vanilla, so operand upgrades are just a `kafka.version` bump — no
+rebuild. Requires cluster support for image volumes (the `ImageVolume` feature;
+container runtime containerd ≥ 2.1 or CRI-O ≥ 1.33).
+
 ```yaml
 kafka:
-  # A plugin-bearing operand image is required — the stock Strimzi image does
-  # not bundle the Aiven tiered-storage plugin.
-  image: <registry>/.../strimzi/kafka:0.51.0-kafka-4.2.0-tiered
   # Turn on the broker-side remote log subsystem:
   config:
     remote.log.storage.system.enable: true
   tieredStorage:
     enabled: true
+    plugin:
+      image:
+        # A plugin-only OCI image containing just the RSM JARs.
+        reference: <registry>/platform/<partition>/kafka-tiered-storage-plugin:2025-03-14
+        pullPolicy: IfNotPresent
+      mountPath: /mnt/tiered-storage   # must be under /mnt
     remoteStorageManager:
       className: io.aiven.kafka.tieredstorage.RemoteStorageManager
-      classPath: /opt/kafka/libs/tiered-storage/*
+      # classPath left empty → auto-derived to /mnt/tiered-storage/*
     # Keys are auto-prefixed with `rsm.config.` by Strimzi — omit that prefix here.
     config:
       storage.backend.class: io.aiven.kafka.tieredstorage.storage.s3.S3Storage
       storage.s3.bucket.name: partition-kafka-tiered-us-east-2
       storage.s3.region: us-east-2
+```
+
+Only broker-role node pools receive the plugin volume and mount; controllers are
+untouched.
+
+**Alternative — custom operand image.** Bake the plugin into a Strimzi operand
+build, set `kafka.image` to it, and point `classPath` at the in-image path. This
+works on any cluster but must be rebuilt to stay in sync with each Strimzi
+operand release.
+
+```yaml
+kafka:
+  image: <registry>/.../strimzi/kafka:0.51.0-kafka-4.2.0-tiered
+  tieredStorage:
+    enabled: true
+    remoteStorageManager:
+      className: io.aiven.kafka.tieredstorage.RemoteStorageManager
+      classPath: /opt/kafka/libs/tiered-storage/*
+    config: { ... }
 ```
 
 Enable per topic with `remote.storage.enable=true`.
