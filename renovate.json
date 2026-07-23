@@ -11,5 +11,21 @@
   },
   "digest": {
     "dependencyDashboardApproval": true
-  }
+  },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Track the Aiven tiered-storage plugin release across the version pin and the chart default image tag",
+      "managerFilePatterns": [
+        "/^tiered-storage-plugin/PLUGIN_VERSION$/",
+        "/^strimzi-cluster-instance/values\\.yaml$/"
+      ],
+      "matchStrings": [
+        "datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)\\s+(?<currentValue>\\d+\\.\\d+\\.\\d+)",
+        "kafka-tiered-storage-plugin:aws-(?<currentValue>\\d+\\.\\d+\\.\\d+)[^\\n]*datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)"
+      ],
+      "extractVersionTemplate": "^v(?<version>.+)$",
+      "versioningTemplate": "semver"
+    }
+  ]
 }

@@ -13,6 +13,12 @@
 {{- end }}
 {{- range .Values.nodePools }}
 {{- $poolName := .name }}
+{{- /* Tiered storage: when enabled with an image-volume plugin, mount the
+     plugin-only OCI image read-only into broker pods so the RSM classpath
+     resolves without a custom operand image. Only broker-role pools need it. */}}
+{{- $ts := $.Values.kafka.tieredStorage }}
+{{- $tsMount := and $ts.enabled (has "broker" .roles) (not (empty $ts.plugin.image.reference)) }}
+{{- $tsMountPath := $ts.plugin.mountPath | default "/mnt/tiered-storage" }}
 ---
 apiVersion: kafka.strimzi.io/v1
 kind: KafkaNodePool
@@ -140,10 +146,21 @@ spec:
       {{- if .template.pod.tmpDirSizeLimit }}
       tmpDirSizeLimit: {{ .template.pod.tmpDirSizeLimit }}
       {{- end }}
-      {{- with .template.pod.volumes }}
+      {{- $poolVolumes := .template.pod.volumes | default list }}
+      {{- if $tsMount }}
+      {{- $poolVolumes = append $poolVolumes (dict "name" "tiered-storage-plugin" "image" (dict "reference" $ts.plugin.image.reference "pullPolicy" ($ts.plugin.image.pullPolicy | default "IfNotPresent"))) }}
+      {{- end }}
+      {{- with $poolVolumes }}
       volumes:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+  {{- if $tsMount }}
+    kafkaContainer:
+      volumeMounts:
+        - name: tiered-storage-plugin
+          mountPath: {{ $tsMountPath }}
+          readOnly: true
+  {{- end }}
   replicas: {{ .replicas }}
   roles:
     {{- range .roles }}

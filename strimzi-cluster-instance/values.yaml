@@ -160,7 +160,86 @@ kafka:
   #   - User:mirrormaker2
   #   - User:CN=my-service-account
   brokerRackInitImage: null
-  
+
+  # image overrides the Kafka operand container image on the Kafka CR
+  # (spec.kafka.image), applied to all broker and controller pods.
+  # Leave empty ("") to let the Strimzi operator select its default operand
+  # image based on kafka.version (current behavior — recommended).
+  #
+  # You normally do NOT need this for tiered storage: the preferred delivery
+  # method mounts the RSM plugin from a plugin-only OCI image via an image
+  # volume (see kafka.tieredStorage.plugin), which keeps the operand image
+  # vanilla and tracking upstream. Set image only if you instead bake the
+  # plugin into a custom operand build, e.g.:
+  #   image: <registry>/platform/<partition>/strimzi/kafka:0.51.0-kafka-4.2.0-tiered
+  image: ""
+
+  # tieredStorage enables Kafka KIP-405 tiered storage (spec.kafka.tieredStorage)
+  # so closed log segments offload to a remote backend (e.g. S3) and brokers
+  # retain only the hot set on local disk. Tiered storage layers ON TOP of the
+  # existing node-pool persistent-claim volumes — local disk still holds the
+  # hot set, so no change to nodePools[].storage is needed.
+  #
+  # Requirements when enabled:
+  #   - The RSM plugin must be on the broker classpath. Preferred: mount a
+  #     plugin-only OCI image via plugin.image below (no custom operand build).
+  #     Alternative: set kafka.image to an operand that bundles the plugin and
+  #     set remoteStorageManager.classPath to its in-image path.
+  #   - Set `remote.log.storage.system.enable: true` in kafka.config to turn on
+  #     the broker-side remote log subsystem.
+  #   - Enable per-topic with `remote.storage.enable=true` on each topic.
+  tieredStorage:
+    # enabled: false (default) renders no tieredStorage block and injects no
+    # plugin volume — existing clusters are unaffected.
+    enabled: false
+
+    # plugin delivers the RemoteStorageManager JARs to the broker pods.
+    #
+    # Preferred method — image volume: set plugin.image.reference to a
+    # plugin-only OCI image. When set, the chart mounts it read-only into the
+    # broker pods (Kubernetes image volume) at plugin.mountPath and defaults the
+    # RSM classPath to "<mountPath>/*". The Strimzi operand image stays vanilla,
+    # so operand upgrades are just a kafka.version bump — no rebuild.
+    #
+    # Requires cluster support for Kubernetes image volumes (the `ImageVolume`
+    # feature; container runtime containerd >= 2.1 or CRI-O >= 1.33).
+    plugin:
+      image:
+        # reference: the plugin-only OCI image to mount. Prepopulated with the
+        # AWS (S3) plugin image published from this repo (tag <cloud>-<version>).
+        # Override for another cloud/registry, or set "" to use the
+        # custom-operand-image method instead (set kafka.image +
+        # remoteStorageManager.classPath). The tag is kept in sync with the
+        # Aiven release by Renovate (see tiered-storage-plugin/PLUGIN_VERSION).
+        reference: ghcr.io/ryanfaircloth/kafka-tiered-storage-plugin:aws-1.1.1 # datasource=github-releases depName=Aiven-Open/tiered-storage-for-apache-kafka
+        pullPolicy: IfNotPresent # Always | Never | IfNotPresent
+      # mountPath must live under /mnt (Strimzi mounts additional volumes there).
+      # The RSM classPath defaults to "<mountPath>/*" when an image reference is set.
+      mountPath: /mnt/tiered-storage
+
+    remoteStorageManager:
+      # RemoteStorageManager implementation class. Default targets the Aiven
+      # tiered-storage-for-apache-kafka plugin.
+      className: io.aiven.kafka.tieredstorage.RemoteStorageManager
+      # classPath: explicit override. Leave "" to auto-derive "<mountPath>/*"
+      # when plugin.image.reference is set. For the custom-operand-image method,
+      # set this to the in-image path, e.g. /opt/kafka/libs/tiered-storage/*.
+      classPath: ""
+
+    # config is a free-form map passed through to the RemoteStorageManager.
+    # Strimzi automatically prefixes each key with `rsm.config.` before adding it
+    # to the broker configuration, so specify keys WITHOUT that prefix here.
+    # Values are rendered as strings. Nothing is hardcoded — set backend, bucket,
+    # region, and chunk/cache tuning as needed.
+    #
+    # Example — Aiven S3 backend:
+    #   config:
+    #     storage.backend.class: io.aiven.kafka.tieredstorage.storage.s3.S3Storage
+    #     storage.s3.bucket.name: partition-kafka-tiered-us-east-2
+    #     storage.s3.region: us-east-2
+    #     chunk.size: "4194304"
+    config: {}
+
   config:
     auto.create.topics.enable: true
     # background threads include replication for very high throughput increase based on available CPU cores and usage default is 10

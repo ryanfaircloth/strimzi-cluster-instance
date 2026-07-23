@@ -250,6 +250,90 @@ curl http://localhost:5050/v2/dev/charts/strimzi-cluster-instance/tags/list
 - **Cruise Control**: Automated partition rebalancing
 - **Multiple Listeners**: Internal plain and TLS listeners
 - **Monitoring Ready**: Configured for observability stack integration
+- **Custom Operand Image**: Override the Kafka operand image via `kafka.image`
+- **Tiered Storage (KIP-405)**: Offload closed log segments to S3 via `kafka.tieredStorage`
+
+#### Custom operand image (`kafka.image`)
+
+By default the Strimzi operator selects its own Kafka operand image from
+`kafka.version`. Set `kafka.image` to pin a custom operand build on the Kafka CR
+(`spec.kafka.image`), applied to all broker and controller pods. Leave it empty
+(the default) to keep the operator's default image — no change to existing behavior.
+
+```yaml
+kafka:
+  image: <registry>/platform/<partition>/strimzi/kafka:0.51.0-kafka-4.2.0-tiered
+```
+
+#### Tiered storage (`kafka.tieredStorage`)
+
+Enables Kafka [KIP-405 tiered storage](https://cwiki.apache.org/confluence/display/KAFKA/KIP-405)
+(`spec.kafka.tieredStorage`, `type: custom`) so closed log segments offload to a
+remote backend (e.g. S3) and brokers keep only the hot set on local disk. Tiered
+storage layers on top of the existing node-pool `persistent-claim` volumes — no
+change to `nodePools[].storage` is required.
+
+Disabled by default (`enabled: false`); existing clusters are unaffected.
+
+The RSM plugin can reach the brokers two ways:
+
+**Preferred — image volume (no custom operand build).**
+`tieredStorage.plugin.image.reference` points at a plugin-only OCI image; it is
+**prepopulated with the AWS (S3) image** built from this repo (see
+[`tiered-storage-plugin/`](tiered-storage-plugin) — built per cloud, tagged
+`<cloud>-<version>`, and kept in sync with upstream by Renovate). The chart
+mounts it read-only into the broker pods as a Kubernetes image volume (under
+`/mnt`) and auto-derives `classPath` to `<mountPath>/*`. The Strimzi operand
+image stays vanilla, so operand upgrades are just a `kafka.version` bump — no
+rebuild. Requires cluster support for image volumes (the `ImageVolume` feature;
+container runtime containerd ≥ 2.1 or CRI-O ≥ 1.33).
+
+For AWS you only need to enable it and set the backend config — the image
+default already resolves:
+
+```yaml
+kafka:
+  # Turn on the broker-side remote log subsystem:
+  config:
+    remote.log.storage.system.enable: true
+  tieredStorage:
+    enabled: true
+    plugin:
+      image:
+        # A plugin-only OCI image containing just the RSM JARs.
+        reference: <registry>/platform/<partition>/kafka-tiered-storage-plugin:2025-03-14
+        pullPolicy: IfNotPresent
+      mountPath: /mnt/tiered-storage   # must be under /mnt
+    remoteStorageManager:
+      className: io.aiven.kafka.tieredstorage.RemoteStorageManager
+      # classPath left empty → auto-derived to /mnt/tiered-storage/*
+    # Keys are auto-prefixed with `rsm.config.` by Strimzi — omit that prefix here.
+    config:
+      storage.backend.class: io.aiven.kafka.tieredstorage.storage.s3.S3Storage
+      storage.s3.bucket.name: partition-kafka-tiered-us-east-2
+      storage.s3.region: us-east-2
+```
+
+Only broker-role node pools receive the plugin volume and mount; controllers are
+untouched.
+
+**Alternative — custom operand image.** Bake the plugin into a Strimzi operand
+build, set `kafka.image` to it, and point `classPath` at the in-image path. This
+works on any cluster but must be rebuilt to stay in sync with each Strimzi
+operand release.
+
+```yaml
+kafka:
+  image: <registry>/.../strimzi/kafka:0.51.0-kafka-4.2.0-tiered
+  tieredStorage:
+    enabled: true
+    remoteStorageManager:
+      className: io.aiven.kafka.tieredstorage.RemoteStorageManager
+      classPath: /opt/kafka/libs/tiered-storage/*
+    config: { ... }
+```
+
+Enable per topic with `remote.storage.enable=true`.
 
 ### Available Make Targets
 

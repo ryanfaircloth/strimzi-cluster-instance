@@ -1,0 +1,4 @@
+# Aiven tiered-storage plugin version pin.
+# Bumped by Renovate; the release workflow and the chart default both track this.
+# datasource=github-releases depName=Aiven-Open/tiered-storage-for-apache-kafka
+1.1.1

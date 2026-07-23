@@ -15,6 +15,9 @@ metadata:
   name: {{ include "strimzi-cluster-instance.fullname" . }}
 spec:
   kafka:
+    {{- if .Values.kafka.image }}
+    image: {{ .Values.kafka.image }}
+    {{- end }}
     authorization:
       type: {{ .Values.kafka.authorization.type | default "simple" }}
       {{- with .Values.kafka.superUsers }}
@@ -27,6 +30,29 @@ spec:
     {{- with .Values.kafka.config }}
     config:
       {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- if .Values.kafka.tieredStorage.enabled }}
+    {{- $ts := .Values.kafka.tieredStorage }}
+    {{- /* classPath: explicit override wins; otherwise derive from the mounted
+         plugin image path. Fail if neither delivery method is configured. */}}
+    {{- $classPath := $ts.remoteStorageManager.classPath }}
+    {{- if and (not $classPath) $ts.plugin.image.reference }}
+      {{- $classPath = printf "%s/*" (required "kafka.tieredStorage.plugin.mountPath is required when plugin.image.reference is set" $ts.plugin.mountPath) }}
+    {{- end }}
+    {{- if not $classPath }}
+      {{- fail "kafka.tieredStorage is enabled but no plugin classpath resolved: set plugin.image.reference (to mount a plugin OCI image) or remoteStorageManager.classPath (for a custom operand image)" }}
+    {{- end }}
+    tieredStorage:
+      type: custom
+      remoteStorageManager:
+        className: {{ required "kafka.tieredStorage.remoteStorageManager.className is required when tieredStorage is enabled" $ts.remoteStorageManager.className }}
+        classPath: {{ $classPath }}
+        {{- with $ts.config }}
+        config:
+          {{- range $key, $value := . }}
+          {{ $key }}: {{ $value | quote }}
+          {{- end }}
+        {{- end }}
     {{- end }}
     listeners:
       - name: tls
