@@ -7,7 +7,7 @@ name: Release tiered-storage plugin image
 # and each matrix leg skips if its "<cloud>-<version>" tag already exists.
 on:
   push:
-    branches: [main]
+    branches: [main, feat/tiered-storage-image-override] # TEMP: verify build+publish before merge
     paths:
       - "tiered-storage-plugin/**"
       - ".github/workflows/release-tiered-storage-plugin.yml"
