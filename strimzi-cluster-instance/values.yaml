@@ -46,6 +46,22 @@ nodePools:
         priorityClassName: ""
         tmpDirSizeLimit: ""
         volumes: []
+      # kafkaContainer: environment variables for the broker/controller container
+      # (rendered to spec.template.kafkaContainer.env on the KafkaNodePool).
+      #   additionalEnv: appended to whatever the chart provides — use this to ADD
+      #     variables without having to redeclare any default.
+      #   env: when non-empty, REPLACES the chart-default env entirely — use this
+      #     only when you need to change a default the chart ships.
+      # Coexists with the tiered-storage volume mount (both render when set).
+      #
+      # Example — IPv6 / dual-stack EKS with Pod Identity (AWS SDK for Java v2
+      # needs this to accept the IPv6 credential endpoint):
+      #   additionalEnv:
+      #     - name: AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE
+      #       value: IPV6
+      kafkaContainer:
+        env: []
+        additionalEnv: []
     storage:
       type: jbod
       volumes:
@@ -113,6 +129,10 @@ nodePools:
         priorityClassName: ""
         tmpDirSizeLimit: ""
         volumes: []
+      # See the broker pool above for kafkaContainer.env / additionalEnv semantics.
+      kafkaContainer:
+        env: []
+        additionalEnv: []
     storage:
       type: jbod
       volumes:

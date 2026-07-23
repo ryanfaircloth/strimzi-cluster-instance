@@ -154,12 +154,29 @@ spec:
       volumes:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-  {{- if $tsMount }}
+  {{- /* kafkaContainer env passthrough (issue #30). Resolution:
+       - $defaultEnv: chart-provided defaults (none today; extension point).
+       - env: when set, REPLACES the chart defaults entirely.
+       - additionalEnv: ALWAYS appended, so consumers add vars without having
+         to redeclare any default the chart ships. */}}
+  {{- $kc := .template.kafkaContainer | default dict }}
+  {{- $defaultEnv := list }}
+  {{- $kcEnv := $kc.env | default $defaultEnv }}
+  {{- with $kc.additionalEnv }}
+  {{- $kcEnv = concat $kcEnv . }}
+  {{- end }}
+  {{- if or $tsMount $kcEnv }}
     kafkaContainer:
+      {{- if $tsMount }}
       volumeMounts:
         - name: tiered-storage-plugin
           mountPath: {{ $tsMountPath }}
           readOnly: true
+      {{- end }}
+      {{- with $kcEnv }}
+      env:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
   {{- end }}
   replicas: {{ .replicas }}
   roles:
